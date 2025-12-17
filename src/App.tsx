@@ -16,6 +16,7 @@ function App() {
   ];
 
   const selectImage = (img: { id: string; url: string; alt: string }) => {
+    console.log("Sending value to Bloomreach", img);
     window.parent.postMessage(
       {
         type: "br:integration:value",
@@ -26,7 +27,7 @@ function App() {
           alt: img.alt
         }
       },
-      "*"
+      "https://test-brompton.bloomreach.io"
     );
   };
 
