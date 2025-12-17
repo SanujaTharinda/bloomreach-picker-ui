@@ -4,8 +4,12 @@
         "source": "/(.*)",
         "headers": [
           {
+            "key": "X-Frame-Options",
+            "value": "ALLOWALL"
+          },
+          {
             "key": "Content-Security-Policy",
-            "value": "frame-ancestors https://*.bloomreach.com"
+            "value": "frame-ancestors https://test-brompton.bloomreach.io"
           }
         ]
       }
