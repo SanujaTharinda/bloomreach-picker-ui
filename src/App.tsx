@@ -24,6 +24,11 @@ function App() {
       },
       "https://test-brompton.bloomreach.io"
     );
+
+    window.parent.postMessage(
+      { type: "br:integration:close" },
+      "https://test-brompton.bloomreach.io"
+    );
   };
 
   return (
