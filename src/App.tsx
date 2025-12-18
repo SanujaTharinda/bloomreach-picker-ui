@@ -20,12 +20,7 @@ function App() {
     window.parent.postMessage(
       {
         type: "br:integration:value",
-        value: {
-          provider: "mock",
-          assetId: img.id,
-          url: img.url,
-          alt: img.alt
-        }
+        value: img.url
       },
       "https://test-brompton.bloomreach.io"
     );
