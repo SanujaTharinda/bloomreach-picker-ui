@@ -63,6 +63,10 @@ export const createMockUiScope = (config?: {
 
   // Store field value in memory for mock
   let fieldValue = mockConfig.currentValue
+  
+  // Store dialog promise resolver for mock dialog.open()
+  let dialogResolver: ((value: any) => void) | null = null
+  let dialogRejector: ((error: any) => void) | null = null
 
   const mockScope: MockUiScope = {
     baseUrl: window.location.origin,
@@ -142,15 +146,141 @@ export const createMockUiScope = (config?: {
         }
         throw new Error('Not in dialog mode')
       },
-      open: async () => {
-        console.log('[Mock] Dialog opened')
+      open: async (options: any) => {
+        console.log('[Mock] Dialog opened with options:', options)
+        
+        // In local development, open the dialog URL in a new window
+        // Add dialog=true parameter to simulate dialog mode
+        const dialogUrl = new URL(options.url || window.location.href)
+        
+        // Preserve existing query parameters
+        const currentParams = new URLSearchParams(window.location.search)
+        currentParams.forEach((value, key) => {
+          if (key !== 'dialog' && key !== 'dialogValue') {
+            dialogUrl.searchParams.set(key, value)
+          }
+        })
+        
+        // Set dialog mode parameters
+        dialogUrl.searchParams.set('dialog', 'true')
+        if (options.value) {
+          dialogUrl.searchParams.set('dialogValue', typeof options.value === 'string' ? options.value : JSON.stringify(options.value))
+        }
+        
+        // Open in a new window for local development
+        const dialogWindow = window.open(
+          dialogUrl.toString(),
+          'bloomreach-dialog',
+          'width=800,height=600,resizable=yes,scrollbars=yes'
+        )
+        
+        if (!dialogWindow) {
+          const error = new Error('Failed to open dialog window. Please allow popups for this site.')
+          // @ts-expect-error - Adding code property to match UiExtensionError
+          error.code = 'InternalError'
+          throw error
+        }
+        
+        // Return a promise that resolves when dialog.close() or dialog.cancel() is called
+        // Listen for messages from the dialog window
+        const messageHandler = (event: MessageEvent) => {
+          // Only accept messages from the same origin
+          if (event.origin !== window.location.origin) {
+            return
+          }
+          
+          if (event.data?.type === 'bloomreach-dialog-close') {
+            window.removeEventListener('message', messageHandler)
+            if (dialogWindow && !dialogWindow.closed) {
+              dialogWindow.close()
+            }
+            if (dialogResolver) {
+              dialogResolver(event.data.value)
+              dialogResolver = null
+              dialogRejector = null
+            }
+          } else if (event.data?.type === 'bloomreach-dialog-cancel') {
+            window.removeEventListener('message', messageHandler)
+            if (dialogWindow && !dialogWindow.closed) {
+              dialogWindow.close()
+            }
+            if (dialogRejector) {
+              const error = new Error('Dialog canceled')
+              // @ts-expect-error - Adding code property to match UiExtensionError
+              error.code = 'DialogCanceled'
+              dialogRejector(error)
+              dialogResolver = null
+              dialogRejector = null
+            }
+          }
+        }
+        
+        // Also handle window closed manually
+        const checkClosed = setInterval(() => {
+          if (dialogWindow.closed) {
+            clearInterval(checkClosed)
+            window.removeEventListener('message', messageHandler)
+            if (dialogRejector) {
+              const error = new Error('Dialog canceled')
+              // @ts-expect-error - Adding code property to match UiExtensionError
+              error.code = 'DialogCanceled'
+              dialogRejector(error)
+              dialogResolver = null
+              dialogRejector = null
+            }
+          }
+        }, 500)
+        
+        window.addEventListener('message', messageHandler)
+        
+        return new Promise((resolve, reject) => {
+          dialogResolver = resolve
+          dialogRejector = reject
+        })
       },
       close: async (value: any) => {
         console.log('[Mock] Dialog closed with value:', value)
-        // In a real scenario, this would resolve the dialog promise
+        
+        // If we're in a dialog window (opened by dialog.open), send message to parent
+        if (mockConfig.isDialogMode && window.opener) {
+          window.opener.postMessage({
+            type: 'bloomreach-dialog-close',
+            value: value,
+          }, window.location.origin)
+          // Close the dialog window
+          window.close()
+          return
+        }
+        
+        // Otherwise, resolve the promise directly (for direct calls)
+        if (dialogResolver) {
+          dialogResolver(value)
+          dialogResolver = null
+          dialogRejector = null
+        }
       },
       cancel: async () => {
         console.log('[Mock] Dialog canceled')
+        
+        // If we're in a dialog window (opened by dialog.open), send message to parent
+        if (mockConfig.isDialogMode && window.opener) {
+          window.opener.postMessage({
+            type: 'bloomreach-dialog-cancel',
+          }, window.location.origin)
+          // Close the dialog window
+          window.close()
+          return
+        }
+        
+        // Otherwise, reject the promise directly (for direct calls)
+        if (dialogRejector) {
+          const error = new Error('Dialog canceled')
+          // @ts-expect-error - Adding code property to match UiExtensionError
+          error.code = 'DialogCanceled'
+          dialogRejector(error)
+          dialogResolver = null
+          dialogRejector = null
+        }
       },
     },
     _mockConfig: mockConfig,

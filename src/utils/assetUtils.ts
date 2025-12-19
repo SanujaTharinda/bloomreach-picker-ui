@@ -37,6 +37,35 @@ export const parseAssetIdFromValue = (value: string): string | null => {
 }
 
 /**
+ * Parse asset information from Bloomreach field value
+ */
+export const parseAssetFromValue = (value: string): {
+  id: string
+  url: string
+  alt: string
+  filename: string
+} | null => {
+  if (!value) return null
+
+  try {
+    const parsed = JSON.parse(value)
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const attachment = parsed[0]
+      return {
+        id: attachment.id || '',
+        url: attachment.attributes?.url || attachment.cdn_url || '',
+        alt: attachment.attributes?.alt || attachment.filename || '',
+        filename: attachment.filename || '',
+      }
+    }
+  } catch {
+    // If parsing fails, return null
+  }
+
+  return null
+}
+
+/**
  * Find a collection by ID in a hierarchical tree
  */
 export const findCollectionById = (

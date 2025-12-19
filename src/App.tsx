@@ -5,12 +5,13 @@ import { useCollections } from './hooks/useCollections'
 import { useAssets } from './hooks/useAssets'
 import { UnauthorizedScreen } from './components/UnauthorizedScreen'
 import { DamPickerLayout } from './components/DamPickerLayout'
+import { FieldView } from './components/FieldView'
 import { LocalDevBanner } from './components/LocalDevBanner'
 import { isLocalDevelopment } from './utils/bloomreachMock'
 import './styles/App.scss'
 
 function App() {
-  const { isLoading: extensionLoading, error: extensionError } = useBloomreachContext();
+  const { isLoading: extensionLoading, error: extensionError, isDialogMode } = useBloomreachContext();
   const { isAuthenticated, authLoading, authError } = useAuthContext();
   const {
     collections,
@@ -55,6 +56,14 @@ function App() {
 
   if (!isAuthenticated) return <UnauthorizedScreen message={authError} />;
 
+  if (!isDialogMode) {
+    return (
+      <>
+        {isLocalDevelopment() && <LocalDevBanner />}
+        <FieldView />
+      </>
+    );
+  }
   return (
     <>
       {isLocalDevelopment() && <LocalDevBanner />}

@@ -18,14 +18,11 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
         setIsLoading(true)
         setError('')
 
-        // Check if we're in local development mode first
         const isLocal = isLocalDevelopment()
         
-        // Use mock in local development, real API in Bloomreach
         let extension: UiScope
         
         if (isLocal) {
-          // Get config from URL params for local testing
           const urlParams = new URLSearchParams(window.location.search)
           const modeParam = urlParams.get('mode')
           let mode: 'view' | 'edit' | 'compare' | undefined = undefined
@@ -41,30 +38,27 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
             dialogValue: urlParams.get('dialogValue') || undefined,
           })
         } else {
-          // Only call real API when actually in Bloomreach iframe
-          extension = await UiExtension.register()
+          extension = await UiExtension.register();
         }
 
         setUi(extension)
 
-        // Check if we're in dialog mode
         try {
           const dialogOptions = await extension.dialog.options()
+          console.log('[Bloomreach] Dialog mode detected:', dialogOptions)
           setIsDialogMode(true)
           setDialogCurrentValue(dialogOptions.value || '')
         } catch (dialogErr: any) {
-          // Not in dialog mode
+          console.log('[Bloomreach] Not in dialog mode, using document field mode')
+          console.log('[Bloomreach] Dialog error (expected if not configured as dialog):', dialogErr?.message || dialogErr)
           setIsDialogMode(false)
 
-          // Get document information
           const document = await extension.document.get()
           setMode(document.mode)
 
-          // Get current field value
           const value = await extension.document.field.getValue()
           setCurrentValue(value || '')
 
-          // Set initial height for the iframe
           await extension.document.field.setHeight(600)
         }
       } catch (err: any) {
