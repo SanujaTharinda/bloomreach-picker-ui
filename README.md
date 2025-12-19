@@ -1,73 +1,98 @@
-# React + TypeScript + Vite
+# DAM Asset Picker for Bloomreach
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A Digital Asset Management (DAM) Asset Picker UI Extension for Bloomreach Custom Integrations.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 🔐 API key authentication
+- 📁 Hierarchical collections tree
+- 🖼️ Image asset grid with selection
+- 🎨 Modern UI with Ant Design
+- 🔄 Bloomreach UI Extension integration
 
-## React Compiler
+## Local Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+You can test the application locally without connecting to Bloomreach by using the mock mode.
 
-## Expanding the ESLint configuration
+### Running Locally
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Access with mock mode:**
+   The application automatically detects local development mode when:
+   - Not running in an iframe (Bloomreach loads extensions in iframes)
+   - Or when `?localDev=true` is in the URL
+   - Or when `localStorage.setItem('bloomreach:localDev', 'true')` is set
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Configure mock settings via URL parameters:**
+   ```
+   http://localhost:5173/?apiKey=your-api-key&mode=edit&value=initial-value&dialog=false
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### URL Parameters for Local Testing
+
+- `apiKey` - Mock API key (default: `mock-api-key-12345`)
+- `mode` - Document editor mode: `view`, `edit`, or `compare` (default: `edit`)
+- `value` - Initial field value (default: empty)
+- `dialog` - Set to `true` to simulate dialog mode (default: `false`)
+- `dialogValue` - Initial dialog value (only used when `dialog=true`)
+
+### Examples
+
+**Basic local testing:**
+```
+http://localhost:5173/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+**With custom API key:**
 ```
+http://localhost:5173/?apiKey=test-key-123
+```
+
+**Dialog mode:**
+```
+http://localhost:5173/?dialog=true&dialogValue=some-value
+```
+
+**View mode:**
+```
+http://localhost:5173/?mode=view
+```
+
+### Testing Authentication
+
+- Valid API keys: Any key except `invalid-key` or `test-invalid`
+- Invalid API keys: `invalid-key` or `test-invalid` (will show unauthorized screen)
+
+## Project Structure
+
+```
+src/
+├── components/       # React components
+├── contexts/         # React contexts
+├── hooks/            # Custom React hooks
+├── services/         # API services
+├── styles/           # SCSS stylesheets
+├── types/            # TypeScript type definitions
+└── utils/            # Utility functions
+```
+
+## Building for Production
+
+```bash
+npm run build
+```
+
+The built files will be in the `dist/` directory, ready to be deployed to your Bloomreach Custom Integration.
+
+## Technologies
+
+- React 19
+- TypeScript
+- Ant Design 6
+- SCSS
+- Vite
+- Bloomreach UI Extension SDK

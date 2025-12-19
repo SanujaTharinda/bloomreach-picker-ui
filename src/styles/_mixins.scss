@@ -1,0 +1,21 @@
+@import './variables';
+
+// Flexbox center mixin
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Full height flex center
+@mixin flex-center-full {
+  @include flex-center;
+  min-height: $min-height-full;
+}
+
+// Content flex center
+@mixin flex-center-content {
+  @include flex-center;
+  min-height: $min-height-content;
+}
+

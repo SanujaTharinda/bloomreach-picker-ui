@@ -1,0 +1,18 @@
+@import './variables';
+@import './mixins';
+
+.app {
+  &__loading {
+    @include flex-center-full;
+  }
+
+  &__error {
+    padding: $spacing-md;
+    text-align: center;
+
+    &-message {
+      color: $error-color;
+    }
+  }
+}
+
