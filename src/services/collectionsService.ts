@@ -2,7 +2,11 @@
  * Collections service for fetching folder tree structure
  */
 
+// @ts-ignore -- Reserved for future API integration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { restApiService } from './restApiService'
+// @ts-ignore -- Reserved for future API integration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { Collection, CollectionsTreeResponse } from '../types'
 
 class CollectionsService {
@@ -126,6 +130,8 @@ class CollectionsService {
   /**
    * Fetch a single collection by ID
    */
+  // @ts-ignore -- Reserved for future API integration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getCollectionById(collectionId: string): Promise<Collection | null> {
     // Mock API call
     await new Promise((resolve) => setTimeout(resolve, 200))

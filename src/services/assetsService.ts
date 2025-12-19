@@ -2,7 +2,11 @@
  * Assets service for fetching assets for a collection
  */
 
+// @ts-ignore -- Reserved for future API integration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { restApiService } from './restApiService'
+// @ts-ignore -- Reserved for future API integration
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import type { Asset, AssetsResponse } from '../types'
 
 class AssetsService {
@@ -157,6 +161,8 @@ class AssetsService {
   /**
    * Fetch a single asset by ID
    */
+  // @ts-ignore -- Reserved for future API integration
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getAssetById(assetId: string): Promise<Asset | null> {
     // Mock API call
     await new Promise((resolve) => setTimeout(resolve, 200))

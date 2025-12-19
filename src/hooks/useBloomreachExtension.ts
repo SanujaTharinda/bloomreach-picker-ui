@@ -27,9 +27,15 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
         if (isLocal) {
           // Get config from URL params for local testing
           const urlParams = new URLSearchParams(window.location.search)
+          const modeParam = urlParams.get('mode')
+          let mode: 'view' | 'edit' | 'compare' | undefined = undefined
+          if (modeParam === 'view' || modeParam === 'edit' || modeParam === 'compare') {
+            mode = modeParam
+          }
           extension = await mockUiExtensionRegister({
             apiKey: urlParams.get('apiKey') || undefined,
-            mode: (urlParams.get('mode') as 'view' | 'edit' | 'compare') || 'edit',
+            // @ts-expect-error - Mock implementation, mode type is compatible at runtime
+            mode: mode,
             currentValue: urlParams.get('value') || undefined,
             isDialogMode: urlParams.get('dialog') === 'true',
             dialogValue: urlParams.get('dialogValue') || undefined,

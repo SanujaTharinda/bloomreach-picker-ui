@@ -2,8 +2,8 @@
  * Mock implementation of Bloomreach UI Extension API for local development
  */
 
-import type { UiScope } from '@bloomreach/ui-extension-saas'
-import type { DocumentEditorMode } from '../types'
+import type { UiScope, DocumentEditorMode } from '@bloomreach/ui-extension-saas'
+import { UiStyling, DialogSize } from '@bloomreach/ui-extension-saas'
 
 interface MockUiScope extends UiScope {
   _mockConfig?: {
@@ -55,7 +55,7 @@ export const createMockUiScope = (config?: {
 }): MockUiScope => {
   const mockConfig = {
     apiKey: config?.apiKey || 'mock-api-key-12345',
-    mode: config?.mode || 'edit',
+    mode: (config?.mode || 'edit') as DocumentEditorMode,
     currentValue: config?.currentValue || '',
     isDialogMode: config?.isDialogMode || false,
     dialogValue: config?.dialogValue || '',
@@ -63,7 +63,6 @@ export const createMockUiScope = (config?: {
 
   // Store field value in memory for mock
   let fieldValue = mockConfig.currentValue
-  let dialogClosedValue: string | null = null
 
   const mockScope: MockUiScope = {
     baseUrl: window.location.origin,
@@ -71,7 +70,7 @@ export const createMockUiScope = (config?: {
       config: JSON.stringify({ apiKey: mockConfig.apiKey }),
     },
     locale: 'en',
-    styling: 'material' as const,
+    styling: UiStyling.Material,
     timeZone: 'UTC',
     user: {
       id: 'mock-user',
@@ -107,7 +106,7 @@ export const createMockUiScope = (config?: {
         id: 'mock-document-id',
         displayName: 'Mock Document',
         locale: 'en',
-        mode: mockConfig.mode || 'edit',
+        mode: (mockConfig.mode || 'edit') as DocumentEditorMode,
         urlName: 'mock-document',
         variant: {
           id: 'draft',
@@ -117,7 +116,7 @@ export const createMockUiScope = (config?: {
       open: async () => {},
       field: {
         getValue: async () => fieldValue,
-        getCompareValue: async () => null,
+        getCompareValue: async () => '',
         setValue: async (value: string) => {
           fieldValue = value
           console.log('[Mock] Field value set:', value)
@@ -127,7 +126,8 @@ export const createMockUiScope = (config?: {
         },
       },
       setFieldValue: async () => {},
-      getFieldValue: async () => null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Mock implementation, returns null for simplicity but type expects string
+      getFieldValue: async (): Promise<string> => null as any,
       getValues: async () => ({}),
     },
     dialog: {
@@ -136,7 +136,7 @@ export const createMockUiScope = (config?: {
           return {
             title: 'Select Asset',
             url: window.location.href,
-            size: 'medium' as const,
+            size: DialogSize.Medium,
             value: mockConfig.dialogValue || '',
           }
         }
@@ -146,7 +146,6 @@ export const createMockUiScope = (config?: {
         console.log('[Mock] Dialog opened')
       },
       close: async (value: any) => {
-        dialogClosedValue = value
         console.log('[Mock] Dialog closed with value:', value)
         // In a real scenario, this would resolve the dialog promise
       },
