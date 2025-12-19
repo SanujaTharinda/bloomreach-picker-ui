@@ -6,6 +6,18 @@ interface Image {
   id: string
   url: string
   alt: string
+  mimetype?: string
+  filename?: string
+}
+
+interface SerializedAttachment {
+  id: string
+  type: "attachments"
+  attributes: Record<string, any>
+  relationships: Record<string, any>
+  mimetype: string
+  filename: string
+  cdn_url: string
 }
 
 function App() {
@@ -19,14 +31,38 @@ function App() {
     {
       id: "img-1",
       url: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee",
-      alt: "Mountain landscape"
+      alt: "Mountain landscape",
+      mimetype: "image/jpeg",
+      filename: "mountain-landscape.jpg"
     },
     {
       id: "img-2",
       url: "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
-      alt: "Forest road"
+      alt: "Forest road",
+      mimetype: "image/jpeg",
+      filename: "forest-road.jpg"
     }
   ];
+
+  const serializeImage = (img: Image): SerializedAttachment => {
+    // Extract filename from URL if not provided
+    const filename = img.filename || img.url.split('/').pop() || 'image.jpg'
+    // Extract mimetype from filename or default to image/jpeg
+    const mimetype = img.mimetype || (filename.endsWith('.png') ? 'image/png' : 'image/jpeg')
+    
+    return {
+      id: img.id,
+      type: "attachments",
+      attributes: {
+        alt: img.alt,
+        url: img.url
+      },
+      relationships: {},
+      mimetype,
+      filename,
+      cdn_url: img.url
+    }
+  }
 
   useEffect(() => {
     const initializeExtension = async () => {
@@ -72,10 +108,14 @@ function App() {
     }
 
     try {
+      // Serialize the image into the required format
+      const serialized = serializeImage(img)
+      const serializedValue = JSON.stringify([serialized])
+      
       // Set the field value using the UI Extension API
-      await ui.document.field.setValue(img.url)
-      setCurrentValue(img.url)
-      console.log('Successfully set field value:', img.url)
+      await ui.document.field.setValue(serializedValue)
+      setCurrentValue(serializedValue)
+      console.log('Successfully set field value:', serializedValue)
     } catch (err: any) {
       console.error('Error setting field value:', err.code, err.message)
       setError(`Failed to set value: ${err.message}`)
@@ -107,11 +147,29 @@ function App() {
       )}
       
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-        {images.map(img => (
+        {images.map(img => {
+          // Check if this image is selected by parsing currentValue
+          let isSelected = false
+          try {
+            if (currentValue) {
+              const parsed = JSON.parse(currentValue)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                isSelected = parsed[0].id === img.id || parsed[0].cdn_url === img.url
+              } else if (typeof parsed === 'string') {
+                // Fallback for old format (just URL)
+                isSelected = parsed === img.url
+              }
+            }
+          } catch {
+            // If parsing fails, fallback to string comparison
+            isSelected = currentValue === img.url
+          }
+          
+          return (
           <div
             key={img.id}
             style={{
-              border: currentValue === img.url ? '2px solid #007bff' : '1px solid #ddd',
+              border: isSelected ? '2px solid #007bff' : '1px solid #ddd',
               borderRadius: '8px',
               padding: '0.5rem',
               cursor: mode === 'edit' ? 'pointer' : 'default',
@@ -134,7 +192,8 @@ function App() {
             />
             <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.875rem' }}>{img.alt}</p>
           </div>
-        ))}
+          )
+        })}
       </div>
       
       {mode !== 'edit' && (
