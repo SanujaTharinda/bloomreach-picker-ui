@@ -54,8 +54,6 @@ function App() {
     );
   }
 
-  if (!isAuthenticated) return <UnauthorizedScreen message={authError} />;
-
   if (!isDialogMode) {
     return (
       <>
@@ -67,16 +65,17 @@ function App() {
   return (
     <>
       {isLocalDevelopment() && <LocalDevBanner />}
-      <DamPickerLayout
-        collections={collections}
-        selectedCollectionId={selectedCollectionId}
-        assets={assets}
-        selectedAssetId={selectedAssetId}
-        collectionsLoading={collectionsLoading}
-        assetsLoading={assetsLoading}
-        onSelectCollection={handleSelectCollection}
-        onSelectAsset={handleSelectAssetWithErrorHandling}
-      />
+      {isAuthenticated ? 
+        <DamPickerLayout
+          collections={collections}
+          selectedCollectionId={selectedCollectionId}
+          assets={assets}
+          selectedAssetId={selectedAssetId}
+          collectionsLoading={collectionsLoading}
+          assetsLoading={assetsLoading}
+          onSelectCollection={handleSelectCollection}
+          onSelectAsset={handleSelectAssetWithErrorHandling}
+        /> : <UnauthorizedScreen message={authError} />}
     </>
   )
 }
