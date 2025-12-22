@@ -1,0 +1,21 @@
+@use '../../styles/variables' as *;
+
+.paginationControls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: $spacing-sm $spacing-md;
+  border-top: 1px solid $border-light;
+  background-color: $white;
+}
+
+.info {
+  font-size: $font-size-base;
+}
+
+.pageInfo {
+  font-size: $font-size-base;
+  min-width: 80px;
+  text-align: center;
+}
+

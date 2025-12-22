@@ -9,6 +9,10 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
   selectedAssetId,
   onSelectAsset,
   loading = false,
+  currentPage,
+  totalPages,
+  totalAssets,
+  onPageChange,
 }) => {
   if (loading) {
     return (

@@ -23,6 +23,14 @@ export interface AssetsResponse {
   pageSize: number
 }
 
+export interface AssetsQueryParams {
+  collectionId?: string | null
+  page?: number
+  pageSize?: number
+  searchQuery?: string
+  viewAll?: boolean
+}
+
 export interface CollectionsTreeResponse {
   collections: Collection[]
 }

@@ -84,3 +84,36 @@ export const findCollectionById = (
   return null
 }
 
+/**
+ * Build breadcrumb path from root to a collection
+ */
+export const getCollectionBreadcrumb = (
+  collections: Collection[],
+  collectionId: string | null
+): Collection[] => {
+  if (!collectionId) return []
+  
+  const findCollectionWithParents = (
+    cols: Collection[],
+    targetId: string,
+    path: Collection[] = []
+  ): Collection[] | null => {
+    for (const col of cols) {
+      const currentPath = [...path, col]
+      
+      if (col.id === targetId) {
+        return currentPath
+      }
+      
+      if (col.children && col.children.length > 0) {
+        const found = findCollectionWithParents(col.children, targetId, currentPath)
+        if (found) return found
+      }
+    }
+    return null
+  }
+  
+  const breadcrumb = findCollectionWithParents(collections, collectionId)
+  return breadcrumb || []
+}
+

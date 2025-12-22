@@ -12,12 +12,16 @@ export interface AssetGridProps {
   selectedAssetId: string | null
   onSelectAsset: (asset: Asset) => void
   loading?: boolean
+  currentPage?: number
+  totalPages?: number
+  totalAssets?: number
+  onPageChange?: (page: number) => void
 }
 
 export interface CollectionsTreeProps {
   collections: Collection[]
   selectedCollectionId: string | null
-  onSelectCollection: (collectionId: string) => void
+  onSelectCollection: (collectionId: string | null) => void
   loading?: boolean
 }
 
@@ -28,8 +32,17 @@ export interface DamPickerLayoutProps {
   selectedAssetId: string | null
   collectionsLoading: boolean
   assetsLoading: boolean
-  onSelectCollection: (collectionId: string) => void
+  onSelectCollection: (collectionId: string | null) => void
   onSelectAsset: (asset: Asset) => void
+  // New features
+  searchQuery: string
+  onSearch: (query: string) => void
+  viewAll: boolean
+  onViewAllChange: (viewAll: boolean) => void
+  currentPage: number
+  totalPages: number
+  totalAssets: number
+  onPageChange: (page: number) => void
 }
 
 export interface UnauthorizedScreenProps {
@@ -44,5 +57,21 @@ export interface BloomreachProviderProps {
 export interface AuthProviderProps {
   value: AuthContextValue
   children: ReactNode
+}
+
+export interface SearchBarProps {
+  value: string
+  onSearch: (query: string) => void
+  placeholder?: string
+  loading?: boolean
+}
+
+export interface PaginationControlsProps {
+  currentPage: number
+  totalPages: number
+  totalAssets: number
+  pageSize: number
+  onPageChange: (page: number) => void
+  loading?: boolean
 }
 

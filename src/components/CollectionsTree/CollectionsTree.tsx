@@ -34,6 +34,8 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
     if (selectedKeys.length > 0) {
       const collectionId = selectedKeys[0] as string
       onSelectCollection(collectionId)
+    } else {
+      onSelectCollection(null)
     }
   }
 

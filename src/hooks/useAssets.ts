@@ -5,37 +5,84 @@ import { useBloomreachContext } from '../contexts/BloomreachContext'
 import { serializeAsset, parseAssetIdFromValue } from '../utils/assetUtils'
 import type { UseAssetsReturn, Asset } from '../types'
 
-export const useAssets = (selectedCollectionId: string | null): UseAssetsReturn => {
+const PAGE_SIZE = 30
+
+export const useAssets = (
+  selectedCollectionId: string | null,
+  viewAll: boolean = false
+): UseAssetsReturn => {
   const { isAuthenticated } = useAuthContext()
   const { ui, isDialogMode, mode, currentValue, dialogCurrentValue } = useBloomreachContext()
   const [assets, setAssets] = useState<Asset[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null)
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalAssets, setTotalAssets] = useState(0)
+  const [pageSize] = useState(PAGE_SIZE)
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('')
 
-  // Load assets when collection is selected
+  // Calculate total pages
+  const totalPages = Math.ceil(totalAssets / pageSize) || 1
+
+  // Load assets when dependencies change
   useEffect(() => {
     const loadAssets = async () => {
-      if (!selectedCollectionId || !isAuthenticated) {
+      // Don't load if not authenticated
+      if (!isAuthenticated) {
         setAssets([])
+        setTotalAssets(0)
+        return
+      }
+
+      // If viewAll is false and no collection selected, don't load
+      if (!viewAll && !selectedCollectionId) {
+        setAssets([])
+        setTotalAssets(0)
         return
       }
 
       try {
         setAssetsLoading(true)
         setError(null)
-        const assetsData = await assetsService.getAssetsByCollectionId(selectedCollectionId)
-        setAssets(assetsData)
+        
+        const result = await assetsService.getAssets({
+          collectionId: viewAll ? null : selectedCollectionId,
+          page: currentPage,
+          pageSize,
+          searchQuery,
+          viewAll,
+        })
+        
+        setAssets(result.assets)
+        setTotalAssets(result.total)
       } catch (err: any) {
         console.error('Failed to load assets:', err)
         setError(`Failed to load assets: ${err.message}`)
+        setAssets([])
+        setTotalAssets(0)
       } finally {
         setAssetsLoading(false)
       }
     }
 
     loadAssets()
-  }, [selectedCollectionId, isAuthenticated])
+  }, [selectedCollectionId, isAuthenticated, currentPage, searchQuery, viewAll, pageSize])
+
+  // Reset to page 1 and clear search when collection or view mode changes
+  useEffect(() => {
+    setCurrentPage(1)
+    setSearchQuery('') // Clear search when collection changes
+  }, [selectedCollectionId, viewAll])
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
 
   // Determine selected asset from current value
   useEffect(() => {
@@ -84,6 +131,19 @@ export const useAssets = (selectedCollectionId: string | null): UseAssetsReturn 
     [ui, isDialogMode, mode]
   )
 
+  // Handle page change
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page)
+    // Scroll to top of content area when page changes
+    // The scroll will be handled by the component that has the ref
+  }, [])
+
+  // Handle search
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query)
+    // Page will reset to 1 via useEffect
+  }, [])
+
   return {
     assets,
     assetsLoading,
@@ -91,5 +151,14 @@ export const useAssets = (selectedCollectionId: string | null): UseAssetsReturn 
     selectedAssetId,
     handleSelectAsset,
     setSelectedAssetId,
+    // Pagination
+    currentPage,
+    totalPages,
+    totalAssets,
+    pageSize,
+    handlePageChange,
+    // Search
+    searchQuery,
+    handleSearch,
   }
 }

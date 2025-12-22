@@ -1,0 +1,16 @@
+@use '../../styles/variables' as *;
+
+.searchBar {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+}
+
+.input {
+  flex: 1;
+}
+
+.button {
+  flex-shrink: 0;
+}
+

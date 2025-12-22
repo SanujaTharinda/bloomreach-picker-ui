@@ -28,6 +28,8 @@ export type {
   UnauthorizedScreenProps,
   BloomreachProviderProps,
   AuthProviderProps,
+  SearchBarProps,
+  PaginationControlsProps,
 } from './components'
 
 // Hooks

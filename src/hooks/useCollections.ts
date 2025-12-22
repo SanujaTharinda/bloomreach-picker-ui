@@ -34,7 +34,11 @@ export const useCollections = (): UseCollectionsReturn => {
 
   // Handle collection selection
   const handleSelectCollection = useCallback(
-    (collectionId: string) => {
+    (collectionId: string | null) => {
+      if (collectionId === null) {
+        setSelectedCollectionId(null)
+        return
+      }
       // Only select leaf collections (collections without children)
       const collection = findCollectionById(collections, collectionId)
       if (collection && !collection.hasChildren) {

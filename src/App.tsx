@@ -1,4 +1,5 @@
 import { Spin } from 'antd'
+import { useState } from 'react'
 import { useBloomreachContext } from './contexts/BloomreachContext'
 import { useAuthContext } from './contexts/AuthContext'
 import { useCollections } from './hooks/useCollections'
@@ -18,15 +19,32 @@ function App() {
     collectionsLoading,
     error: collectionsError,
     selectedCollectionId,
-    handleSelectCollection,
+    handleSelectCollection: originalHandleSelectCollection,
   } = useCollections();
+  
+  // View all mode state - default to true to show all assets on initial load
+  const [viewAll, setViewAll] = useState(true);
+
+  // Reset viewAll when collection is selected (switch back to collection view)
+  const handleSelectCollection = (collectionId: string | null) => {
+    originalHandleSelectCollection(collectionId)
+    // Always reset viewAll when a collection is selected
+    setViewAll(false)
+  }
+  
   const {
     assets,
     assetsLoading,
     error: assetsError,
     selectedAssetId,
     handleSelectAsset,
-  } = useAssets(selectedCollectionId);
+    currentPage,
+    totalPages,
+    totalAssets,
+    handlePageChange,
+    searchQuery,
+    handleSearch,
+  } = useAssets(selectedCollectionId, viewAll);
 
   const handleSelectAssetWithErrorHandling = async (asset: any) => {
     try {
@@ -81,6 +99,14 @@ function App() {
         assetsLoading={assetsLoading}
         onSelectCollection={handleSelectCollection}
         onSelectAsset={handleSelectAssetWithErrorHandling}
+        searchQuery={searchQuery}
+        onSearch={handleSearch}
+        viewAll={viewAll}
+        onViewAllChange={setViewAll}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalAssets={totalAssets}
+        onPageChange={handlePageChange}
       />
     </>
   )

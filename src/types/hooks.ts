@@ -18,6 +18,15 @@ export interface UseAssetsReturn {
   selectedAssetId: string | null
   handleSelectAsset: (asset: Asset) => Promise<void>
   setSelectedAssetId: (id: string | null) => void
+  // Pagination
+  currentPage: number
+  totalPages: number
+  totalAssets: number
+  pageSize: number
+  handlePageChange: (page: number) => void
+  // Search
+  searchQuery: string
+  handleSearch: (query: string) => void
 }
 
 export interface UseCollectionsReturn {
@@ -25,7 +34,7 @@ export interface UseCollectionsReturn {
   collectionsLoading: boolean
   error: string | null
   selectedCollectionId: string | null
-  handleSelectCollection: (collectionId: string) => void
+  handleSelectCollection: (collectionId: string | null) => void
   setSelectedCollectionId: (id: string | null) => void
 }
 
