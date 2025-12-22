@@ -148,10 +148,6 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
             selectedAssetId={selectedAssetId}
             onSelectAsset={onSelectAsset}
             loading={assetsLoading}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalAssets={totalAssets}
-            onPageChange={onPageChange}
           />
           {totalAssets > 0 && (
             <PaginationControls
