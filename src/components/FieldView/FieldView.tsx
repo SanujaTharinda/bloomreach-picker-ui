@@ -127,7 +127,7 @@ export const FieldView: React.FC = () => {
         )}
         <Space>
           <Button
-            type="primary"
+            type="default"
             icon={hasValue ? <EditOutlined /> : <PlusOutlined />}
             onClick={handleAdd}
             disabled={mode !== 'edit'}
@@ -135,6 +135,7 @@ export const FieldView: React.FC = () => {
             {hasValue ? 'Edit' : 'Add'}
           </Button>
           <Button
+            type="default"
             danger
             icon={<DeleteOutlined />}
             onClick={handleClear}
