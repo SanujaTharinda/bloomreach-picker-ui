@@ -1,0 +1,72 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.assetGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: $spacing-md;
+  padding: $spacing-md;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+.loading,
+.empty {
+  @include flex-center-content;
+}
+
+.card {
+  cursor: pointer;
+  border-radius: 12px;
+  transition: $transition-default;
+  background-color: $white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.cardSelected {
+  box-shadow: 0 6px 20px rgba(74, 158, 255, 0.3);
+  background: linear-gradient(135deg, $primary-lightest 0%, $white 100%);
+  transform: translateY(-2px);
+}
+
+.cardUnselected {
+  &:hover {
+    box-shadow: 0 4px 12px rgba(74, 158, 255, 0.2);
+    transform: translateY(-2px);
+  }
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  padding-top: 75%;
+  overflow: hidden;
+  border-radius: 8px;
+  background-color: $background-lighter;
+}
+
+.image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
+.info {
+  margin-top: $spacing-xs;
+}
+
+.infoFilename {
+  font-size: $font-size-base;
+  display: block;
+}
+
+.infoDimensions {
+  font-size: $font-size-sm;
+}
+

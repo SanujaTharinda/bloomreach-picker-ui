@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Button, Space, Typography, Image } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
-import { useBloomreachContext } from '../contexts/BloomreachContext'
+import { useBloomreachContext } from '../../contexts/BloomreachContext'
 import { DialogSize } from '@bloomreach/ui-extension-saas'
-import { parseAssetFromValue } from '../utils/assetUtils'
-import '../styles/FieldView.scss'
+import { parseAssetFromValue } from '../../utils/assetUtils'
+import styles from './FieldView.module.scss'
 
 const { Text } = Typography
 
@@ -92,25 +92,25 @@ export const FieldView: React.FC = () => {
   }, [ui, isDialogMode, selectedAsset])
 
   return (
-    <div className="field-view">
+    <div className={styles.fieldView}>
       <Space direction="vertical" size="small">
         {selectedAsset && (
-          <div className="field-view__asset-preview">
-            <div className="field-view__asset-image-wrapper">
+          <div className={styles.assetPreview}>
+            <div className={styles.assetImageWrapper}>
               <Image
                 src={selectedAsset.url}
                 alt={selectedAsset.alt}
-                className="field-view__asset-image"
+                className={styles.assetImage}
                 preview={false}
                 fallback="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect fill='%23ddd' width='200' height='200'/%3E%3Ctext fill='%23999' font-family='sans-serif' font-size='14' dy='10.5' font-weight='bold' x='50%25' y='50%25' text-anchor='middle'%3ENo Image%3C/text%3E%3C/svg%3E"
               />
             </div>
-            <div className="field-view__asset-info">
-              <Text strong className="field-view__asset-filename">
+            <div className={styles.assetInfo}>
+              <Text strong className={styles.assetFilename}>
                 {selectedAsset.filename}
               </Text>
               {selectedAsset.alt && (
-                <Text type="secondary" className="field-view__asset-alt">
+                <Text type="secondary" className={styles.assetAlt}>
                   {selectedAsset.alt}
                 </Text>
               )}
@@ -136,7 +136,7 @@ export const FieldView: React.FC = () => {
           </Button>
         </Space>
         {mode !== 'edit' && (
-          <Text type="secondary" className="field-view__mode-notice">
+          <Text type="secondary" className={styles.modeNotice}>
             Field is in {mode} mode. Editing is disabled.
           </Text>
         )}

@@ -1,0 +1,65 @@
+@import '../../styles/variables';
+
+.fieldView {
+  padding: 1rem;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.assetPreview {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background-color: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  width: 100%;
+  max-width: 100%;
+}
+
+.assetImageWrapper {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #e8e8e8;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.assetImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.assetInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.assetFilename {
+  display: block;
+  word-break: break-word;
+}
+
+.assetAlt {
+  display: block;
+  font-size: 0.875rem;
+  word-break: break-word;
+}
+
+.modeNotice {
+  font-size: 0.875rem;
+  font-style: italic;
+}
+

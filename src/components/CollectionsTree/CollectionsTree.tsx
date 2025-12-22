@@ -1,8 +1,8 @@
 import { Tree, Spin } from 'antd'
 import { FolderOutlined, FolderOpenOutlined } from '@ant-design/icons'
 import type { DataNode } from 'antd/es/tree'
-import type { CollectionsTreeProps, Collection } from '../types'
-import '../styles/CollectionsTree.scss'
+import type { CollectionsTreeProps, Collection } from '../../types'
+import styles from './CollectionsTree.module.scss'
 
 export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
   collections,
@@ -39,7 +39,7 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
 
   if (loading) {
     return (
-      <div className="collections-tree__loading">
+      <div className={styles.loading}>
         <Spin size="large" />
       </div>
     )
@@ -53,7 +53,7 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
       selectedKeys={selectedCollectionId ? [selectedCollectionId] : []}
       treeData={treeData}
       onSelect={handleSelect}
-      className="collections-tree"
+      className={styles.collectionsTree}
     />
   )
 }

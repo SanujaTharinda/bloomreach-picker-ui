@@ -1,8 +1,8 @@
 import { Layout } from 'antd'
-import { CollectionsTree } from './CollectionsTree'
-import { AssetGrid } from './AssetGrid'
-import type { DamPickerLayoutProps } from '../types'
-import '../styles/DamPickerLayout.scss'
+import { CollectionsTree } from '../CollectionsTree'
+import { AssetGrid } from '../AssetGrid'
+import type { DamPickerLayoutProps } from '../../types'
+import styles from './DamPickerLayout.module.scss'
 
 const { Sider, Content, Header } = Layout
 
@@ -17,21 +17,21 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
   onSelectAsset,
 }) => {
   return (
-    <Layout className="dam-picker-layout">
-      <Header className="dam-picker-layout__top-header">
-        <div className="dam-picker-layout__header-content">
+    <Layout className={styles.damPickerLayout}>
+      <Header className={styles.topHeader}>
+        <div className={styles.headerContent}>
           <img
             src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Brompton_Bicycle_logo.svg/960px-Brompton_Bicycle_logo.svg.png?20120811083043"
             alt="Brompton Bicycle"
-            className="dam-picker-layout__logo"
+            className={styles.logo}
           />
-          <h1 className="dam-picker-layout__title">Brompton Resource Space</h1>
+          <h1 className={styles.title}>Brompton Resource Space</h1>
         </div>
       </Header>
-      <Layout className="dam-picker-layout__body">
-        <Sider width={300} className="dam-picker-layout__sider">
-          <div className="dam-picker-layout__sidebar-header">
-            <h3 className="dam-picker-layout__sidebar-title">Collections</h3>
+      <Layout className={styles.body}>
+        <Sider width={300} className={styles.sider}>
+          <div className={styles.sidebarHeader}>
+            <h3 className={styles.sidebarTitle}>Collections</h3>
           </div>
           <CollectionsTree
             collections={collections}
@@ -40,9 +40,9 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
             loading={collectionsLoading}
           />
         </Sider>
-        <Content className="dam-picker-layout__content">
-          <div className="dam-picker-layout__content-header">
-            <h3 className="dam-picker-layout__content-title">
+        <Content className={styles.content}>
+          <div className={styles.contentHeader}>
+            <h3 className={styles.contentTitle}>
               {selectedCollectionId ? 'Assets' : 'Select a collection to view assets'}
             </h3>
           </div>

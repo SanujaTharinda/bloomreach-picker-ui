@@ -1,6 +1,6 @@
 import { Card, Spin, Empty, Typography } from 'antd';
-import type { AssetGridProps } from '../types';
-import '../styles/AssetGrid.scss';
+import type { AssetGridProps } from '../../types';
+import styles from './AssetGrid.module.scss';
 
 const { Text } = Typography
 
@@ -12,7 +12,7 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="asset-grid__loading">
+      <div className={styles.loading}>
         <Spin size="large" />
       </div>
     )
@@ -20,14 +20,14 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
 
   if (assets.length === 0) {
     return (
-      <div className="asset-grid__empty">
+      <div className={styles.empty}>
         <Empty description="No assets found in this collection" />
       </div>
     )
   }
 
   return (
-    <div className="asset-grid">
+    <div className={styles.assetGrid}>
       {assets.map((asset) => {
         const isSelected = selectedAssetId === asset.id
 
@@ -35,24 +35,24 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
           <Card
             key={asset.id}
             hoverable
-            className={`asset-grid__card ${
-              isSelected ? 'asset-grid__card--selected' : 'asset-grid__card--unselected'
+            className={`${styles.card} ${
+              isSelected ? styles.cardSelected : styles.cardUnselected
             }`}
             onClick={() => onSelectAsset(asset)}
             bodyStyle={{ padding: '0.75rem' }}
           >
-            <div className="asset-grid__image-wrapper">
+            <div className={styles.imageWrapper}>
               <img
                 src={asset.url}
                 alt={asset.alt}
-                className="asset-grid__image"
+                className={styles.image}
               />
             </div>
-            <div className="asset-grid__info">
-              <Text strong className="asset-grid__info-filename">
+            <div className={styles.info}>
+              <Text strong className={styles.infoFilename}>
                 {asset.filename}
               </Text>
-              <Text type="secondary" className="asset-grid__info-dimensions">
+              <Text type="secondary" className={styles.infoDimensions}>
                 {asset.width} × {asset.height}
               </Text>
             </div>

@@ -6,7 +6,7 @@ import { useAuthentication } from './hooks/useAuthentication'
 import { BloomreachProvider } from './contexts/BloomreachContext'
 import { AuthProvider } from './contexts/AuthContext'
 import App from './App.tsx'
-import './index.css'
+import './index.scss'
 
 function AppProviders() {
   const bloomreachData = useBloomreachExtension();

@@ -1,0 +1,88 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.damPickerLayout {
+  min-height: $min-height-full;
+  display: flex;
+  flex-direction: column;
+}
+
+.topHeader {
+  background: linear-gradient(135deg, $primary-lighter 0%, $white 100%);
+  padding: 0 $spacing-md;
+  height: 64px;
+  line-height: 64px;
+  box-shadow: 0 1px 3px rgba(74, 158, 255, 0.08);
+  z-index: 10;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  height: 100%;
+  width: 100%;
+}
+
+.logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $text-primary;
+  letter-spacing: -0.02em;
+}
+
+.body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.sider {
+  background-color: $background-lighter;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 8px rgba(74, 158, 255, 0.05);
+}
+
+.sidebarHeader {
+  padding: $spacing-md $spacing-sm;
+  background: linear-gradient(135deg, $white 0%, $primary-lightest 100%);
+  flex-shrink: 0;
+}
+
+.sidebarTitle {
+  margin: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.content {
+  background-color: $white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.contentHeader {
+  padding: $spacing-md $spacing-sm;
+  background: linear-gradient(135deg, $primary-lightest 0%, $white 100%);
+  flex-shrink: 0;
+}
+
+.contentTitle {
+  margin: 0;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+

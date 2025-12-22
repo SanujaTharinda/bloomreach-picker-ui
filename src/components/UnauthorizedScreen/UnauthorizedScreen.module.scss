@@ -1,13 +1,13 @@
-@import './variables';
-@import './mixins';
+@import '../../styles/variables';
+@import '../../styles/mixins';
 
-.unauthorized-screen {
+.unauthorizedScreen {
   @include flex-center-full;
   padding: $spacing-md;
   background: linear-gradient(135deg, $primary-lightest 0%, $white 100%);
+}
 
-  &__icon {
-    color: $error-color;
-  }
+.icon {
+  color: $error-color;
 }
 
