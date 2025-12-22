@@ -34,9 +34,34 @@
     transition: $transition-default;
     padding: 6px 8px;
     border: none !important;
+    cursor: pointer;
     
     &:hover {
       background-color: $primary-lightest !important;
+    }
+  }
+
+  // Target non-selectable nodes (parent collections with children)
+  // Ant Design Tree removes tabindex and adds aria-disabled for non-selectable nodes
+  .ant-tree-node-content-wrapper[aria-disabled='true'],
+  .ant-tree-node-content-wrapper:not([tabindex='0']) {
+    cursor: default !important;
+    
+    &:hover {
+      cursor: default !important;
+      background-color: transparent !important;
+    }
+  }
+
+  // Style for non-selectable nodes (parent collections with children)
+  .non-selectable-tree-node {
+    .ant-tree-node-content-wrapper {
+      cursor: default !important;
+      
+      &:hover {
+        cursor: default !important;
+        background-color: transparent !important;
+      }
     }
   }
 
