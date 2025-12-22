@@ -62,20 +62,26 @@ function App() {
       </>
     );
   }
+
+  if (!isAuthenticated) {
+    return (
+      <UnauthorizedScreen message={authError} />
+    );
+  }
+
   return (
     <>
       {isLocalDevelopment() && <LocalDevBanner />}
-      {isAuthenticated ? 
-        <DamPickerLayout
-          collections={collections}
-          selectedCollectionId={selectedCollectionId}
-          assets={assets}
-          selectedAssetId={selectedAssetId}
-          collectionsLoading={collectionsLoading}
-          assetsLoading={assetsLoading}
-          onSelectCollection={handleSelectCollection}
-          onSelectAsset={handleSelectAssetWithErrorHandling}
-        /> : <UnauthorizedScreen message={authError} />}
+      <DamPickerLayout
+        collections={collections}
+        selectedCollectionId={selectedCollectionId}
+        assets={assets}
+        selectedAssetId={selectedAssetId}
+        collectionsLoading={collectionsLoading}
+        assetsLoading={assetsLoading}
+        onSelectCollection={handleSelectCollection}
+        onSelectAsset={handleSelectAssetWithErrorHandling}
+      />
     </>
   )
 }

@@ -37,5 +37,6 @@ export interface UseBloomreachExtensionReturn {
   dialogCurrentValue: string
   isLoading: boolean
   error: string
+  getApiKey: () => string | null
 }
 

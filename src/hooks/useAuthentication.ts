@@ -4,31 +4,29 @@ import { useBloomreachContext } from '../contexts/BloomreachContext'
 import type { UseAuthenticationReturn } from '../types'
 
 export const useAuthentication = (): UseAuthenticationReturn => {
-  const { ui, isLoading: extensionLoading } = useBloomreachContext()
+  const { getApiKey, isLoading: extensionLoading } = useBloomreachContext()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState<string>('')
 
   useEffect(() => {
     const authenticate = async () => {
-      if (extensionLoading || !ui) return // Wait for UI extension to initialize
+      if (extensionLoading) return;
 
       try {
-        setAuthLoading(true)
-        setAuthError('')
+        setAuthLoading(true);
+        setAuthError('');
 
-        // Get API key from Bloomreach configuration
-        const apiKey = authService.getApiKeyFromConfig(ui)
+        const apiKey = getApiKey();
 
         if (!apiKey) {
           setIsAuthenticated(false)
           setAuthError(
             'API key is required. Please configure the API key in the Bloomreach Custom Integration settings.'
-          )
-          return
+          );
+          return;
         }
 
-        // Validate API key
         const authResult = await authService.validateApiKey(apiKey)
 
         if (authResult.isValid) {
@@ -48,7 +46,7 @@ export const useAuthentication = (): UseAuthenticationReturn => {
     }
 
     authenticate()
-  }, [extensionLoading, ui])
+  }, [extensionLoading, getApiKey])
 
   return {
     isAuthenticated,

@@ -1,7 +1,25 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import UiExtension, { type UiScope } from '@bloomreach/ui-extension-saas'
-import type { UseBloomreachExtensionReturn } from '../types'
+import type { UseBloomreachExtensionReturn, ExtensionConfig } from '../types'
 import { isLocalDevelopment, mockUiExtensionRegister } from '../utils/bloomreachMock'
+
+/**
+ * Get API key from Bloomreach Custom Integration configuration
+ * The configuration is stored in ui.extension.config as a JSON string
+ */
+const getApiKeyFromConfig = (ui: UiScope | null): string | null => {
+  if (!ui) {
+    return null
+  }
+
+  try {
+    const config: ExtensionConfig = JSON.parse(ui.extension.config || '{}');
+    return config.apiKey || null;
+  } catch (error) {
+    console.error('Failed to parse extension configuration:', error)
+    return ui.extension.config || null
+  }
+}
 
 export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
   const [ui, setUi] = useState<UiScope | null>(null)
@@ -73,6 +91,8 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
     initializeExtension()
   }, [])
 
+  const getApiKey = useCallback((): string | null => getApiKeyFromConfig(ui), [ui]);
+
   return {
     ui,
     currentValue,
@@ -81,5 +101,6 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
     dialogCurrentValue,
     isLoading,
     error,
+    getApiKey
   }
 }

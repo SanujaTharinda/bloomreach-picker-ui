@@ -9,7 +9,7 @@ import App from './App.tsx'
 import './index.css'
 
 function AppProviders() {
-  const bloomreachData = useBloomreachExtension()
+  const bloomreachData = useBloomreachExtension();
 
   return (
     <BloomreachProvider value={bloomreachData}>
