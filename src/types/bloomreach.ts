@@ -13,6 +13,7 @@ export interface BloomreachContextValue {
   isLoading: boolean
   error: string | null
   getApiKey: () => string | null
+  getDialogSize: () => 'small' | 'medium' | 'large'
 }
 
 export type DocumentEditorMode = 'view' | 'edit' | 'compare'

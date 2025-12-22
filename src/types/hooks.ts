@@ -47,5 +47,6 @@ export interface UseBloomreachExtensionReturn {
   isLoading: boolean
   error: string
   getApiKey: () => string | null
+  getDialogSize: () => 'small' | 'medium' | 'large'
 }
 

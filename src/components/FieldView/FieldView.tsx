@@ -9,7 +9,7 @@ import styles from './FieldView.module.scss'
 const { Text } = Typography
 
 export const FieldView: React.FC = () => {
-  const { ui, currentValue, mode, isDialogMode } = useBloomreachContext()
+  const { ui, currentValue, mode, isDialogMode, getDialogSize } = useBloomreachContext()
   const [selectedAsset, setSelectedAsset] = useState<{
     id: string
     url: string
@@ -35,10 +35,18 @@ export const FieldView: React.FC = () => {
     try {
       const currentFieldValue = await ui.document.field.getValue()
 
+      // Get dialog size from config, default to Medium
+      const dialogSizeConfig = getDialogSize()
+      const dialogSizeMap = {
+        small: DialogSize.Small,
+        medium: DialogSize.Medium,
+        large: DialogSize.Large,
+      } as const
+
       const dialogOptions = {
-        title: 'Select Asset',
+        title: 'Brompton Resource Space Picker',
         url: window.location.href,
-        size: DialogSize.Medium,
+        size: dialogSizeMap[dialogSizeConfig],
         value: currentFieldValue || undefined,
       }
 

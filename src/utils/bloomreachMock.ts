@@ -52,6 +52,7 @@ export const createMockUiScope = (config?: {
   currentValue?: string
   isDialogMode?: boolean
   dialogValue?: string
+  dialogSize?: 'small' | 'medium' | 'large'
 }): MockUiScope => {
   const mockConfig = {
     apiKey: config?.apiKey || 'mock-api-key-12345',
@@ -59,6 +60,7 @@ export const createMockUiScope = (config?: {
     currentValue: config?.currentValue || '',
     isDialogMode: config?.isDialogMode || false,
     dialogValue: config?.dialogValue || '',
+    dialogSize: config?.dialogSize || 'medium',
   }
 
   // Store field value in memory for mock
@@ -71,7 +73,10 @@ export const createMockUiScope = (config?: {
   const mockScope: MockUiScope = {
     baseUrl: window.location.origin,
     extension: {
-      config: JSON.stringify({ apiKey: mockConfig.apiKey }),
+      config: JSON.stringify({ 
+        apiKey: mockConfig.apiKey,
+        dialogSize: mockConfig.dialogSize,
+      }),
     },
     locale: 'en',
     styling: UiStyling.Material,
@@ -137,10 +142,15 @@ export const createMockUiScope = (config?: {
     dialog: {
       options: async () => {
         if (mockConfig.isDialogMode) {
+          const dialogSizeMap = {
+            small: DialogSize.Small,
+            medium: DialogSize.Medium,
+            large: DialogSize.Large,
+          } as const
           return {
-            title: 'Select Asset',
+            title: 'Brompton Resource Space Picker',
             url: window.location.href,
-            size: DialogSize.Medium,
+            size: dialogSizeMap[mockConfig.dialogSize],
             value: mockConfig.dialogValue || '',
           }
         }
@@ -298,6 +308,7 @@ export const mockUiExtensionRegister = async (config?: {
   currentValue?: string
   isDialogMode?: boolean
   dialogValue?: string
+  dialogSize?: 'small' | 'medium' | 'large'
 }): Promise<UiScope> => {
   // Simulate async registration delay
   await new Promise((resolve) => setTimeout(resolve, 100))

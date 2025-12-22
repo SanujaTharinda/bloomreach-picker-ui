@@ -21,6 +21,29 @@ const getApiKeyFromConfig = (ui: UiScope | null): string | null => {
   }
 }
 
+/**
+ * Get dialog size from Bloomreach Custom Integration configuration
+ * The configuration is stored in ui.extension.config as a JSON string
+ * Defaults to 'medium' if not specified
+ */
+const getDialogSizeFromConfig = (ui: UiScope | null): 'small' | 'medium' | 'large' => {
+  if (!ui) {
+    return 'medium'
+  }
+
+  try {
+    const config: ExtensionConfig = JSON.parse(ui.extension.config || '{}');
+    const dialogSize = config.dialogSize;
+    if (dialogSize === 'small' || dialogSize === 'medium' || dialogSize === 'large') {
+      return dialogSize;
+    }
+    return 'medium';
+  } catch (error) {
+    console.error('Failed to parse extension configuration:', error)
+    return 'medium'
+  }
+}
+
 export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
   const [ui, setUi] = useState<UiScope | null>(null)
   const [currentValue, setCurrentValue] = useState<string>('')
@@ -47,6 +70,11 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
           if (modeParam === 'view' || modeParam === 'edit' || modeParam === 'compare') {
             mode = modeParam
           }
+          const dialogSizeParam = urlParams.get('dialogSize')
+          const dialogSize: 'small' | 'medium' | 'large' | undefined = 
+            (dialogSizeParam === 'small' || dialogSizeParam === 'medium' || dialogSizeParam === 'large') 
+              ? dialogSizeParam 
+              : undefined
           extension = await mockUiExtensionRegister({
             apiKey: urlParams.get('apiKey') || undefined,
             // @ts-expect-error - Mock implementation, mode type is compatible at runtime
@@ -54,6 +82,7 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
             currentValue: urlParams.get('value') || undefined,
             isDialogMode: urlParams.get('dialog') === 'true',
             dialogValue: urlParams.get('dialogValue') || undefined,
+            dialogSize: dialogSize,
           })
         } else {
           extension = await UiExtension.register();
@@ -92,6 +121,7 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
   }, [])
 
   const getApiKey = useCallback((): string | null => getApiKeyFromConfig(ui), [ui]);
+  const getDialogSize = useCallback((): 'small' | 'medium' | 'large' => getDialogSizeFromConfig(ui), [ui]);
 
   return {
     ui,
@@ -101,6 +131,7 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
     dialogCurrentValue,
     isLoading,
     error,
-    getApiKey
+    getApiKey,
+    getDialogSize
   }
 }

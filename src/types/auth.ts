@@ -9,6 +9,7 @@ export interface AuthResult {
 
 export interface ExtensionConfig {
   apiKey?: string
+  dialogSize?: 'small' | 'medium' | 'large'
   [key: string]: any
 }
 
