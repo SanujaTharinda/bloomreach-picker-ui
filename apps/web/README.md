@@ -14,19 +14,26 @@ A Digital Asset Management (DAM) Asset Picker UI Extension for Bloomreach Custom
 
 ### Environment Variables
 
-Create a `.env` file in the root directory to configure the API URL:
+Create a `.env` file in the root directory to configure the BFF API URL:
 
 ```env
-# ResourceSpace API Configuration
+# BFF API Configuration
 VITE_API_URL=/api
 ```
 
 **Note:** In Vite, environment variables must be prefixed with `VITE_` to be exposed to the client.
 
+The `VITE_API_URL` points to the Backend-For-Frontend (BFF) API which proxies requests to ResourceSpace.
+
 **Examples:**
 - Local development: `VITE_API_URL=http://localhost:3000/api`
-- Production: `VITE_API_URL=https://your-resourcespace-instance.com/api`
+- Production: `VITE_API_URL=https://bff.example.com/api`
 - Relative path (same origin): `VITE_API_URL=/api`
+
+**Environment-specific files:**
+- `.env.example` - Template for local development
+- `.env.staging` - Staging environment configuration
+- `.env.production` - Production environment configuration
 
 If `VITE_API_URL` is not set, it defaults to `/api`.
 
