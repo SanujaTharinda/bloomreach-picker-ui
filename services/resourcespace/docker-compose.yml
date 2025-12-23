@@ -1,0 +1,65 @@
+# ResourceSpace Docker Compose
+# https://www.resourcespace.com/knowledge-base/systemadmin/install_docker
+#
+# Usage:
+#   Local (with MariaDB):     docker compose --profile local up --build -d
+#   Staging/Prod (Azure DB):  docker compose up --build -d
+
+services:
+  resourcespace:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: resourcespace
+    ports:
+      - "${RS_PORT:-80}:80"
+    volumes:
+      # Persist filestore (uploaded assets)
+      - resourcespace_filestore:/var/www/resourcespace/filestore
+      # Persist include folder for config
+      - resourcespace_include:/var/www/resourcespace/include
+    environment:
+      # Database
+      - DB_HOST=${DB_HOST:-mariadb}
+      - DB_NAME=${DB_NAME:-resourcespace}
+      - DB_USER=${DB_USER:-resourcespace_rw}
+      - DB_PASSWORD=${DB_PASSWORD}
+      # ResourceSpace Settings
+      - RS_BASE_URL=${RS_BASE_URL:-http://localhost}
+      - RS_APP_NAME=${RS_APP_NAME:-Brompton Digital Asset Management}
+      # Security Keys
+      - RS_SCRAMBLE_KEY=${RS_SCRAMBLE_KEY}
+      - RS_API_SCRAMBLE_KEY=${RS_API_SCRAMBLE_KEY}
+      # Email
+      - RS_EMAIL_FROM=${RS_EMAIL_FROM:-noreply@localhost}
+      - RS_EMAIL_NOTIFY=${RS_EMAIL_NOTIFY:-admin@localhost}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+        required: false
+    restart: unless-stopped
+
+  # MariaDB - Only for local development (use --profile local)
+  mariadb:
+    image: mariadb:10.11
+    container_name: resourcespace_db
+    profiles:
+      - local
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-resourcespace}
+      - MYSQL_USER=${DB_USER:-resourcespace_rw}
+      - MYSQL_PASSWORD=${DB_PASSWORD:-localpassword}
+    volumes:
+      - resourcespace_db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  resourcespace_filestore:
+  resourcespace_include:
+  resourcespace_db:
