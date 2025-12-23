@@ -1,48 +1,30 @@
 /**
- * Authentication service for API key validation
+ * Authentication service for API key management
+ * Authentication is determined by API responses (401/403 errors)
  */
 
 import { restApiService } from './restApiService'
-import type { AuthResult } from '../types'
-
-// Re-export types for backward compatibility
-export type { AuthResult }
 
 class AuthService {
   /**
-   * Validate API key with the backend
-   * For now, this is mocked - returns true if apiKey exists and is not empty
+   * Set the API key in the REST service
+   * Authentication will be validated when making actual API calls
    */
-  async validateApiKey(apiKey: string | null): Promise<AuthResult> {
-    // Mock validation - simulate API call delay
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    if (!apiKey || apiKey.trim() === '') {
-      return {
-        isValid: false,
-        message: 'API key is required',
-      }
+  setApiKey(apiKey: string | null): void {
+    if (apiKey) {
+      restApiService.setApiKey(apiKey)
     }
+  }
 
-    // Mock: reject certain keys for testing
-    if (apiKey === 'invalid-key' || apiKey === 'test-invalid') {
-      return {
-        isValid: false,
-        message: 'Invalid API key',
-      }
-    }
-
-    // Set the API key in the REST service for future requests
-    restApiService.setApiKey(apiKey)
-
-    // Mock successful validation
-    return {
-      isValid: true,
-      message: 'Authentication successful',
-    }
+  /**
+   * Check if API key is configured
+   */
+  hasApiKey(): boolean {
+    return restApiService.getApiKey() !== null
   }
 }
 
 // Export singleton instance
 export const authService = new AuthService()
+
 

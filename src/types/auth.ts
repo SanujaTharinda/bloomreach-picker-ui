@@ -17,5 +17,7 @@ export interface AuthContextValue {
   isAuthenticated: boolean
   authLoading: boolean
   authError: string
+  handleAuthError?: (error: any) => void
+  markAuthVerified?: () => void
 }
 

@@ -20,6 +20,7 @@ function App() {
     error: collectionsError,
     selectedCollectionId,
     handleSelectCollection: originalHandleSelectCollection,
+    loadCollectionChildren,
   } = useCollections();
   
   // View all mode state - default to true to show all assets on initial load
@@ -56,18 +57,11 @@ function App() {
 
   const error = extensionError || collectionsError || assetsError
 
+  // Show loading only while extension is loading (API key setup)
   if (extensionLoading || authLoading) {
     return (
       <div className="app__loading">
         <Spin size="large" />
-      </div>
-    );
-  }
-
-  if (error && isAuthenticated) {
-    return (
-      <div className="app__error">
-        <p className="app__error-message">{error}</p>
       </div>
     );
   }
@@ -81,9 +75,19 @@ function App() {
     );
   }
 
+  // Show unauthorized screen if not authenticated (determined by API responses)
   if (!isAuthenticated) {
     return (
       <UnauthorizedScreen message={authError} />
+    );
+  }
+
+  // Show error screen for non-auth errors
+  if (error) {
+    return (
+      <div className="app__error">
+        <p className="app__error-message">{error}</p>
+      </div>
     );
   }
 
@@ -107,6 +111,7 @@ function App() {
         totalPages={totalPages}
         totalAssets={totalAssets}
         onPageChange={handlePageChange}
+        loadCollectionChildren={loadCollectionChildren}
       />
     </>
   )

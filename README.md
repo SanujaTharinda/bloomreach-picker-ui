@@ -10,6 +10,26 @@ A Digital Asset Management (DAM) Asset Picker UI Extension for Bloomreach Custom
 - 🎨 Modern UI with Ant Design
 - 🔄 Bloomreach UI Extension integration
 
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file in the root directory to configure the API URL:
+
+```env
+# ResourceSpace API Configuration
+VITE_API_URL=/api
+```
+
+**Note:** In Vite, environment variables must be prefixed with `VITE_` to be exposed to the client.
+
+**Examples:**
+- Local development: `VITE_API_URL=http://localhost:3000/api`
+- Production: `VITE_API_URL=https://your-resourcespace-instance.com/api`
+- Relative path (same origin): `VITE_API_URL=/api`
+
+If `VITE_API_URL` is not set, it defaults to `/api`.
+
 ## Local Development
 
 You can test the application locally without connecting to Bloomreach by using the mock mode.

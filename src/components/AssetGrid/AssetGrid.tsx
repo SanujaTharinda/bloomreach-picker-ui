@@ -43,17 +43,17 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
           >
             <div className={styles.imageWrapper}>
               <img
-                src={asset.url}
-                alt={asset.alt}
+                src={asset.thumbnailUrl || asset.url || ''}
+                alt={asset.title || asset.alt || ''}
                 className={styles.image}
               />
             </div>
             <div className={styles.info}>
               <Text strong className={styles.infoFilename}>
-                {asset.filename}
+                {asset.title || asset.filename || ''}
               </Text>
               <Text type="secondary" className={styles.infoDimensions}>
-                {asset.width} × {asset.height}
+                {asset.dimensions?.width || asset.width || 0} × {asset.dimensions?.height || asset.height || 0}
               </Text>
             </div>
           </Card>

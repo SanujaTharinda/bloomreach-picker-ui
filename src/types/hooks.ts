@@ -9,6 +9,8 @@ export interface UseAuthenticationReturn {
   isAuthenticated: boolean
   authLoading: boolean
   authError: string
+  handleAuthError?: (error: any) => void
+  markAuthVerified?: () => void
 }
 
 export interface UseAssetsReturn {
@@ -36,6 +38,7 @@ export interface UseCollectionsReturn {
   selectedCollectionId: string | null
   handleSelectCollection: (collectionId: string | null) => void
   setSelectedCollectionId: (id: string | null) => void
+  loadCollectionChildren: (collectionId: string) => Promise<Collection[]>
 }
 
 export interface UseBloomreachExtensionReturn {

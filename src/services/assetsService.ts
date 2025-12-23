@@ -2,151 +2,88 @@
  * Assets service for fetching assets for a collection
  */
 
-// @ts-ignore -- Reserved for future API integration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { restApiService } from './restApiService'
-// @ts-ignore -- Reserved for future API integration
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import type { Asset, AssetsResponse } from '../types'
+import type { Asset } from '../types'
+import type { ApiAsset, ApiAssetDetails, ApiAssetsSearchResponse } from '../types/api'
 
 class AssetsService {
   /**
-   * Generate mock assets for testing
+   * Map API asset to internal Asset type
+   * Note: Search results don't include fullUrl, so we'll need to fetch details for full asset info
    */
-  private generateMockAssets(): Asset[] {
-    return [
-      {
-        id: 'asset-1',
-        url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee',
-        alt: 'Mountain landscape banner',
-        mimetype: 'image/jpeg',
-        filename: 'mountain-banner.jpg',
-        width: 1920,
-        height: 1080,
-        size: 245000,
-      },
-      {
-        id: 'asset-2',
-        url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
-        alt: 'Forest road banner',
-        mimetype: 'image/jpeg',
-        filename: 'forest-banner.jpg',
-        width: 1920,
-        height: 1080,
-        size: 312000,
-      },
-      {
-        id: 'asset-3',
-        url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
-        alt: 'Sunset banner',
-        mimetype: 'image/jpeg',
-        filename: 'sunset-banner.jpg',
-        width: 1920,
-        height: 1080,
-        size: 289000,
-      },
-      {
-        id: 'asset-4',
-        url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4',
-        alt: 'Ocean waves',
-        mimetype: 'image/jpeg',
-        filename: 'ocean-social.jpg',
-        width: 1080,
-        height: 1080,
-        size: 156000,
-      },
-      {
-        id: 'asset-5',
-        url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
-        alt: 'Forest path',
-        mimetype: 'image/jpeg',
-        filename: 'forest-social.jpg',
-        width: 1080,
-        height: 1080,
-        size: 178000,
-      },
-      {
-        id: 'asset-6',
-        url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4',
-        alt: 'Hero image 1',
-        mimetype: 'image/jpeg',
-        filename: 'hero-1.jpg',
-        width: 1920,
-        height: 1200,
-        size: 445000,
-      },
-      {
-        id: 'asset-7',
-        url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
-        alt: 'Hero image 2',
-        mimetype: 'image/jpeg',
-        filename: 'hero-2.jpg',
-        width: 1920,
-        height: 1200,
-        size: 512000,
-      },
-      {
-        id: 'asset-8',
-        url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee',
-        alt: 'Thumbnail 1',
-        mimetype: 'image/jpeg',
-        filename: 'thumb-1.jpg',
-        width: 300,
-        height: 300,
-        size: 45000,
-      },
-      {
-        id: 'asset-9',
-        url: 'https://images.unsplash.com/photo-1501785888041-af3ef285b470',
-        alt: 'Thumbnail 2',
-        mimetype: 'image/jpeg',
-        filename: 'thumb-2.jpg',
-        width: 300,
-        height: 300,
-        size: 52000,
-      },
-      {
-        id: 'asset-10',
-        url: 'https://images.unsplash.com/photo-1519681393784-d120267933ba',
-        alt: 'Company logo',
-        mimetype: 'image/png',
-        filename: 'logo.png',
-        width: 500,
-        height: 500,
-        size: 89000,
-      },
-      {
-        id: 'asset-11',
-        url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4',
-        alt: 'Icon set 1',
-        mimetype: 'image/svg+xml',
-        filename: 'icons-1.svg',
-        width: 100,
-        height: 100,
-        size: 12000,
-      },
-      {
-        id: 'asset-12',
-        url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e',
-        alt: 'Icon set 2',
-        mimetype: 'image/svg+xml',
-        filename: 'icons-2.svg',
-        width: 100,
-        height: 100,
-        size: 15000,
-      },
-      // Add more mock assets for pagination testing
-      ...Array.from({ length: 50 }, (_, i) => ({
-        id: `asset-${13 + i}`,
-        url: `https://images.unsplash.com/photo-${1500530855697 + i}`,
-        alt: `Mock asset ${13 + i}`,
-        mimetype: 'image/jpeg',
-        filename: `mock-asset-${13 + i}.jpg`,
-        width: 1920,
-        height: 1080,
-        size: 200000 + i * 1000,
-      })),
-    ]
+  private mapApiAssetToAsset(apiAsset: ApiAsset): Asset {
+    // Parse dimensions string (e.g., "1920 x 1080")
+    const dimensionsMatch = apiAsset.dimensions?.match(/(\d+)\s*x\s*(\d+)/i)
+    const width = dimensionsMatch ? parseInt(dimensionsMatch[1], 10) : 0
+    const height = dimensionsMatch ? parseInt(dimensionsMatch[2], 10) : 0
+
+    // Determine MIME type from file extension
+    const mimeTypeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      svg: 'image/svg+xml',
+      webp: 'image/webp',
+      pdf: 'application/pdf',
+    }
+    const extension = apiAsset.fileExtension?.toLowerCase() || ''
+    const mimeType = mimeTypeMap[extension] || 'application/octet-stream'
+
+    // For search results, we don't have fullUrl, so use thumbnailUrl as placeholder
+    // The fullUrl will be available when fetching asset details
+    const fullUrl = apiAsset.thumbnailUrl // Will be updated when details are fetched
+
+    return {
+      id: apiAsset.id,
+      title: apiAsset.title,
+      fullUrl,
+      thumbnailUrl: apiAsset.thumbnailUrl,
+      dimensions: { width, height },
+      fileSize: 0, // Not available in search results
+      fileExtension: apiAsset.fileExtension || '',
+      mimeType,
+      createdAt: '', // Not available in search results
+      modifiedAt: '', // Not available in search results
+      resourceType: apiAsset.resourceType,
+      // Legacy aliases for backward compatibility
+      url: fullUrl,
+      alt: apiAsset.title,
+      mimetype: mimeType,
+      filename: apiAsset.title,
+      width,
+      height,
+    }
+  }
+
+  /**
+   * Map API asset details to internal Asset type
+   */
+  private mapApiAssetDetailsToAsset(apiAssetDetails: ApiAssetDetails): Asset {
+    return {
+      id: apiAssetDetails.id,
+      title: apiAssetDetails.title,
+      description: apiAssetDetails.description,
+      fullUrl: apiAssetDetails.fullUrl,
+      thumbnailUrl: apiAssetDetails.thumbnailUrl,
+      previewUrl: apiAssetDetails.previewUrl,
+      dimensions: apiAssetDetails.dimensions,
+      fileSize: apiAssetDetails.fileSize,
+      fileExtension: apiAssetDetails.fileExtension,
+      mimeType: apiAssetDetails.mimeType,
+      metadata: apiAssetDetails.metadata,
+      createdAt: apiAssetDetails.createdAt,
+      modifiedAt: apiAssetDetails.modifiedAt,
+      // Legacy aliases for backward compatibility
+      url: apiAssetDetails.fullUrl,
+      alt: apiAssetDetails.title,
+      mimetype: apiAssetDetails.mimeType,
+      filename: apiAssetDetails.title,
+      width: apiAssetDetails.dimensions.width,
+      height: apiAssetDetails.dimensions.height,
+      size: apiAssetDetails.fileSize,
+      updatedAt: apiAssetDetails.modifiedAt,
+    }
   }
 
   /**
@@ -159,63 +96,59 @@ class AssetsService {
     searchQuery?: string
     viewAll?: boolean
   }): Promise<{ assets: Asset[]; total: number; page: number; pageSize: number }> {
-    // Mock API call delay
-    await new Promise((resolve) => setTimeout(resolve, 400))
-
     const {
       collectionId = null,
       page = 1,
-      pageSize = 30,
+      pageSize = 20,
       searchQuery = '',
       viewAll = false,
     } = params
 
-    // Generate all mock assets
-    let allAssets = this.generateMockAssets()
+    try {
+      let response: { data: ApiAssetsSearchResponse }
 
-    // Collection mapping for backward compatibility
-    const mockAssetsByCollection: Record<string, Asset[]> = {
-      'col-3': allAssets.slice(0, 3),
-      'col-4': allAssets.slice(3, 5),
-      'col-5': allAssets.slice(5, 7),
-      'col-6': allAssets.slice(7, 9),
-      'col-8': allAssets.slice(9, 10),
-      'col-9': allAssets.slice(10, 12),
-    }
+      if (viewAll || !collectionId) {
+        // Search all assets
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+        })
+        if (searchQuery.trim()) {
+          queryParams.append('query', searchQuery.trim())
+        }
+        response = await restApiService.get<ApiAssetsSearchResponse>(
+          `/assets/search?${queryParams.toString()}`
+        )
+      } else {
+        // Get assets for a specific collection
+        const queryParams = new URLSearchParams({
+          page: page.toString(),
+          pageSize: pageSize.toString(),
+        })
+        response = await restApiService.get<ApiAssetsSearchResponse>(
+          `/collections/${collectionId}/assets?${queryParams.toString()}`
+        )
+      }
 
-    // Filter by collection if not viewing all
-    if (!viewAll && collectionId) {
-      allAssets = mockAssetsByCollection[collectionId] || []
-    }
+      const apiResponse = response.data
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      allAssets = allAssets.filter(
-        (asset) =>
-          asset.filename.toLowerCase().includes(query) ||
-          asset.alt.toLowerCase().includes(query) ||
-          asset.id.toLowerCase().includes(query)
-      )
-    }
+      // Map API assets to internal format
+      const assets = apiResponse.items.map((apiAsset) => this.mapApiAssetToAsset(apiAsset))
 
-    // Calculate pagination
-    const total = allAssets.length
-    const startIndex = (page - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    const paginatedAssets = allAssets.slice(startIndex, endIndex)
-
-    return {
-      assets: paginatedAssets,
-      total,
-      page,
-      pageSize,
+      return {
+        assets,
+        total: apiResponse.totalCount,
+        page: apiResponse.page,
+        pageSize: apiResponse.pageSize,
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch assets:', error)
+      throw new Error(`Failed to fetch assets: ${error.message || 'Unknown error'}`)
     }
   }
 
   /**
    * Fetch assets for a specific collection (backward compatibility)
-   * For now, returns mock data
    */
   async getAssetsByCollectionId(collectionId: string): Promise<Asset[]> {
     const result = await this.getAssets({ collectionId, viewAll: false })
@@ -225,14 +158,18 @@ class AssetsService {
   /**
    * Fetch a single asset by ID
    */
-  // @ts-ignore -- Reserved for future API integration
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async getAssetById(assetId: string): Promise<Asset | null> {
-    // Mock API call
-    await new Promise((resolve) => setTimeout(resolve, 200))
-
-    // In real implementation, this would call the API
-    return null
+    try {
+      const response = await restApiService.get<ApiAssetDetails>(`/assets/${assetId}`)
+      return this.mapApiAssetDetailsToAsset(response.data)
+    } catch (error: any) {
+      console.error(`Failed to fetch asset ${assetId}:`, error)
+      // Return null if asset not found, throw for other errors
+      if (error.status === 404) {
+        return null
+      }
+      throw new Error(`Failed to fetch asset: ${error.message || 'Unknown error'}`)
+    }
   }
 }
 

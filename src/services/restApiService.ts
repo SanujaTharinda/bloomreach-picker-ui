@@ -8,7 +8,7 @@ import type { ApiResponse, ApiError } from '../types'
 export type { ApiResponse, ApiError }
 
 class RestApiService {
-  private baseUrl: string = '/api' // Will be configured when real API is available
+  private baseUrl: string = import.meta.env.VITE_API_URL || '/api'
   private apiKey: string | null = null
 
   /**
@@ -26,6 +26,27 @@ class RestApiService {
   }
 
   /**
+   * Reset the service state (useful for testing)
+   */
+  reset(): void {
+    this.apiKey = null
+  }
+
+  /**
+   * Set a custom base URL (useful for testing)
+   */
+  setBaseUrl(url: string): void {
+    this.baseUrl = url
+  }
+
+  /**
+   * Get the current base URL
+   */
+  getBaseUrl(): string {
+    return this.baseUrl
+  }
+
+  /**
    * Get authorization headers
    */
   private getHeaders(): HeadersInit {
@@ -35,7 +56,6 @@ class RestApiService {
 
     if (this.apiKey) {
       headers['Authorization'] = `Bearer ${this.apiKey}`
-      headers['X-API-Key'] = this.apiKey
     }
 
     return headers
@@ -52,7 +72,35 @@ class RestApiService {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          const error: ApiError = {
+            message: response.status === 401 
+              ? 'Unauthorized: Invalid or missing API key'
+              : 'Forbidden: Access denied',
+            status: response.status,
+            code: 'UNAUTHORIZED',
+          }
+          throw error
+        }
+
+        // Handle other HTTP errors
+        const errorText = await response.text()
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorJson = JSON.parse(errorText)
+          errorMessage = errorJson.message || errorJson.error || errorMessage
+        } catch {
+          // If response is not JSON, use the text or default message
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw {
+          message: errorMessage,
+          status: response.status,
+        } as ApiError
       }
 
       const data = await response.json()
@@ -61,6 +109,10 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
+      // Re-throw ApiError as-is, otherwise wrap it
+      if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
+        throw error
+      }
       throw {
         message: error instanceof Error ? error.message : 'Unknown error occurred',
         status: 500,
@@ -80,7 +132,35 @@ class RestApiService {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        // Handle authentication errors
+        if (response.status === 401 || response.status === 403) {
+          const error: ApiError = {
+            message: response.status === 401 
+              ? 'Unauthorized: Invalid or missing API key'
+              : 'Forbidden: Access denied',
+            status: response.status,
+            code: 'UNAUTHORIZED',
+          }
+          throw error
+        }
+
+        // Handle other HTTP errors
+        const errorText = await response.text()
+        let errorMessage = `HTTP error! status: ${response.status}`
+        try {
+          const errorJson = JSON.parse(errorText)
+          errorMessage = errorJson.message || errorJson.error || errorMessage
+        } catch {
+          // If response is not JSON, use the text or default message
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+
+        throw {
+          message: errorMessage,
+          status: response.status,
+        } as ApiError
       }
 
       const data = await response.json()
@@ -89,6 +169,10 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
+      // Re-throw ApiError as-is, otherwise wrap it
+      if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
+        throw error
+      }
       throw {
         message: error instanceof Error ? error.message : 'Unknown error occurred',
         status: 500,
@@ -97,6 +181,10 @@ class RestApiService {
   }
 }
 
-// Export singleton instance
+// Export the class for testing and custom instances
+export { RestApiService }
+
+// Export singleton instance for convenience (shared API key state across the app)
+// For testing, you can create a new instance: new RestApiService()
 export const restApiService = new RestApiService()
 

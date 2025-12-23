@@ -4,17 +4,20 @@ import type { Asset, Collection, SerializedAttachment } from '../types'
  * Serialize asset to Bloomreach format
  */
 export const serializeAsset = (asset: Asset): SerializedAttachment => {
+  // Use fullUrl as cdn_url (as requested)
+  const cdnUrl = asset.fullUrl || asset.url || ''
+  
   return {
     id: asset.id,
     type: 'attachments',
     attributes: {
-      alt: asset.alt,
-      url: asset.url,
+      alt: asset.title || asset.alt || '',
+      url: asset.fullUrl || asset.url || '',
     },
     relationships: {},
-    mimetype: asset.mimetype,
-    filename: asset.filename,
-    cdn_url: asset.url,
+    mimetype: asset.mimeType || asset.mimetype || '',
+    filename: asset.title || asset.filename || '',
+    cdn_url: cdnUrl,
   }
 }
 

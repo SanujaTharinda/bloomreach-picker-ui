@@ -23,6 +23,7 @@ export interface CollectionsTreeProps {
   selectedCollectionId: string | null
   onSelectCollection: (collectionId: string | null) => void
   loading?: boolean
+  loadCollectionChildren?: (collectionId: string) => Promise<Collection[]>
 }
 
 export interface DamPickerLayoutProps {
@@ -43,6 +44,7 @@ export interface DamPickerLayoutProps {
   totalPages: number
   totalAssets: number
   onPageChange: (page: number) => void
+  loadCollectionChildren?: (collectionId: string) => Promise<Collection[]>
 }
 
 export interface UnauthorizedScreenProps {

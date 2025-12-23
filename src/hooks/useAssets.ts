@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { assetsService } from '../services/assetsService'
+import { authService } from '../services/authService'
 import { useAuthContext } from '../contexts/AuthContext'
 import { useBloomreachContext } from '../contexts/BloomreachContext'
 import { serializeAsset, parseAssetIdFromValue } from '../utils/assetUtils'
@@ -11,8 +12,8 @@ export const useAssets = (
   selectedCollectionId: string | null,
   viewAll: boolean = false
 ): UseAssetsReturn => {
-  const { isAuthenticated } = useAuthContext()
-  const { ui, isDialogMode, mode, currentValue, dialogCurrentValue } = useBloomreachContext()
+  const { handleAuthError } = useAuthContext()
+  const { ui, isDialogMode, mode, currentValue, dialogCurrentValue, isLoading: extensionLoading } = useBloomreachContext()
   const [assets, setAssets] = useState<Asset[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -30,14 +31,14 @@ export const useAssets = (
   const totalPages = Math.ceil(totalAssets / pageSize) || 1
 
   // Load assets when dependencies change
+  // Try loading immediately - auth will be determined by API response
   useEffect(() => {
     const loadAssets = async () => {
-      // Don't load if not authenticated
-      if (!isAuthenticated) {
-        setAssets([])
-        setTotalAssets(0)
-        return
-      }
+      // Wait for extension to load (so API key is available)
+      if (extensionLoading) return
+      
+      // Check if API key is available before making the call
+      if (!authService.hasApiKey()) return
 
       // If viewAll is false and no collection selected, don't load
       if (!viewAll && !selectedCollectionId) {
@@ -62,16 +63,26 @@ export const useAssets = (
         setTotalAssets(result.total)
       } catch (err: any) {
         console.error('Failed to load assets:', err)
-        setError(`Failed to load assets: ${err.message}`)
-        setAssets([])
-        setTotalAssets(0)
+        
+        // Check if it's an authentication error
+        if (err?.status === 401 || err?.status === 403 || err?.code === 'UNAUTHORIZED') {
+          if (handleAuthError) {
+            handleAuthError(err)
+          }
+          setAssets([])
+          setTotalAssets(0)
+        } else {
+          setError(`Failed to load assets: ${err.message}`)
+          setAssets([])
+          setTotalAssets(0)
+        }
       } finally {
         setAssetsLoading(false)
       }
     }
 
     loadAssets()
-  }, [selectedCollectionId, isAuthenticated, currentPage, searchQuery, viewAll, pageSize])
+  }, [selectedCollectionId, extensionLoading, currentPage, searchQuery, viewAll, pageSize, handleAuthError])
 
   // Reset to page 1 and clear search when collection or view mode changes
   useEffect(() => {
@@ -103,6 +114,7 @@ export const useAssets = (
 
       try {
         // Serialize the asset into the required format
+        // Note: serializeAsset will set cdn_url to fullUrl automatically
         const serialized = serializeAsset(asset)
         const serializedValue = JSON.stringify([serialized])
 

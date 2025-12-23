@@ -29,6 +29,7 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
   totalPages,
   totalAssets,
   onPageChange,
+  loadCollectionChildren,
 }) => {
 
   const handleViewAllClick = () => {
@@ -47,7 +48,7 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
     }
     
     return breadcrumb.map((collection, index) => {
-      const isClickable = !collection.hasChildren
+      const isClickable = collection.isLeaf
       const isLast = index === breadcrumb.length - 1
       
       const handleClick = (e: React.MouseEvent) => {
@@ -109,6 +110,7 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
             selectedCollectionId={selectedCollectionId}
             onSelectCollection={onSelectCollection}
             loading={collectionsLoading}
+            loadCollectionChildren={loadCollectionChildren}
           />
         </Sider>
         <Content className={styles.content}>
