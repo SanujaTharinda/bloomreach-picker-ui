@@ -1,0 +1,35 @@
+# Build outputs
+bin/
+obj/
+out/
+
+# IDE
+.idea/
+.vscode/
+*.user
+*.suo
+
+# Logs
+logs/
+*.log
+
+# Local settings
+appsettings.Local.json
+secrets.json
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+*.http
+

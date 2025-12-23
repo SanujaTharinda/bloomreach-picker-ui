@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  bff:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: brompton-dam-bff
+    ports:
+      - "5293:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ResourceSpace__BaseUrl=${RESOURCESPACE_BASE_URL:-http://host.docker.internal}
+      - ResourceSpace__DefaultUser=${RESOURCESPACE_DEFAULT_USER:-admin}
+      - ResourceSpace__TimeoutSeconds=${RESOURCESPACE_TIMEOUT:-30}
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  # Optional: Add ResourceSpace container for local development
+  # resourcespace:
+  #   image: resourcespace/resourcespace:latest
+  #   container_name: resourcespace
+  #   ports:
+  #     - "80:80"
+  #   volumes:
+  #     - resourcespace_data:/var/www/resourcespace/filestore
+  #   environment:
+  #     - MYSQL_HOST=db
+  #     - MYSQL_DATABASE=resourcespace
+  #     - MYSQL_USER=resourcespace
+  #     - MYSQL_PASSWORD=resourcespace
+
+# volumes:
+#   resourcespace_data:
+

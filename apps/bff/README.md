@@ -44,12 +44,37 @@ ResourceSpace__DefaultUser=api_user
 
 ## Running the Application
 
+### Option 1: Local Development (Recommended for Dev)
+
+Running without Docker provides faster iteration with hot reload and easier debugging:
+
 ```bash
-cd src/Brompton.DigitalAssetManager.Bff
+# From the apps/bff directory
 dotnet run
 ```
 
-The service will start on `http://localhost:5000` by default.
+The service will start on `http://localhost:5293` by default (configured in `Properties/launchSettings.json`).
+
+**Benefits:**
+- Hot reload with `dotnet watch run`
+- Easier debugging with IDE integration
+- No container overhead
+
+### Option 2: Docker (For Testing Container Builds)
+
+Use Docker when you need to test the containerised build locally:
+
+```bash
+# Build and run with docker-compose
+docker-compose up -d
+
+# Service available at http://localhost:5293
+```
+
+**When to use Docker locally:**
+- Testing container configuration before deployment
+- Simulating production-like environment
+- Running alongside other containerised services
 
 ## API Endpoints
 
@@ -213,18 +238,15 @@ Each request is assigned a correlation ID (returned in `X-Correlation-Id` header
 
 ## Performance Features
 
-### Batch Thumbnail Fetching
+### Batch API Calls
 
-ResourceSpace's `get_resource_path` API supports batch requests using a JSON array format for the `ref` parameter (e.g., `ref=[1,2,3]`). The BFF leverages this to fetch all thumbnail URLs in a **single API call** instead of making individual requests per asset.
+ResourceSpace's API supports batch requests using a JSON array format for parameters (e.g., `ref=[1,2,3]`). The BFF leverages this to fetch data in **single API calls** instead of making individual requests per asset.
 
-**Key implementation details:**
+**Batch thumbnail fetching:**
+- Fetches all thumbnail URLs for a page of assets in one call
 - Uses raw (non-URL-encoded) query string for array parameters
-- Signature is calculated on the raw query string: `SHA256(apiKey + "user=admin&function=get_resource_path&ref=[1,2,3]&...")`
+- Signature calculated on raw query string: `SHA256(apiKey + "user=admin&function=get_resource_path&ref=[1,2,3]&...")`
 - Response format: `{ "1": "url1", "2": "url2", ... }`
-
-**Performance comparison:**
-- **Before (parallel)**: N API calls for N assets (configurable concurrency)
-- **After (batch)**: 1 API call for N assets (~12ms for 4 assets in testing)
 
 ### Retry Policy
 
@@ -247,22 +269,24 @@ dotnet build
 
 ### Testing with cURL
 
+These examples work for both local development (`dotnet run`) and local Docker testing (`docker-compose up`), as both use port 5293:
+
 ```bash
 # Search
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "http://localhost:5000/api/assets/search?query=banner&page=1&pageSize=10"
+  "http://localhost:5293/api/assets/search?query=banner&page=1&pageSize=10"
 
 # Collections
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "http://localhost:5000/api/collections"
+  "http://localhost:5293/api/collections"
 
 # Collection Assets
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "http://localhost:5000/api/collections/1/assets?page=1&pageSize=20"
+  "http://localhost:5293/api/collections/1/assets?page=1&pageSize=20"
 
 # Asset Detail
 curl -H "Authorization: Bearer YOUR_API_KEY" \
-  "http://localhost:5000/api/assets/123"
+  "http://localhost:5293/api/assets/123"
 ```
 
 ### OpenAPI
@@ -272,46 +296,116 @@ In development mode, OpenAPI documentation is available at:
 GET /openapi/v1.json
 ```
 
-## Docker Support (Coming Soon)
+## Docker Support
 
-```dockerfile
-# Dockerfile example
-FROM mcr.microsoft.com/dotnet/aspnet:10.0
-WORKDIR /app
-COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "Brompton.DigitalAssetManager.Bff.dll"]
+### Local Docker Testing
+
+```bash
+# Build and run with docker-compose
+docker-compose up -d
+
+# Or build and run manually
+docker build -t brompton-dam-bff .
+docker run -d -p 5293:8080 \
+  -e ResourceSpace__BaseUrl=http://your-resourcespace-url \
+  brompton-dam-bff
+
+# View logs
+docker-compose logs -f bff
+
+# Stop services
+docker-compose down
 ```
 
-## Phase 2: Caching (Planned)
+### Staging/Production Deployment
 
-Future enhancements include:
-- Memory cache for collection tree (60 min TTL)
-- Thumbnail URL caching (30 min TTL)
-- Manual cache invalidation endpoint
+For staging and production, bind to standard HTTP/HTTPS ports:
+
+```bash
+# Build image
+docker build -t brompton-dam-bff:latest .
+
+# Run with standard ports (behind reverse proxy)
+docker run -d \
+  -p 80:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ResourceSpace__BaseUrl=https://your-resourcespace-url \
+  brompton-dam-bff:latest
+
+# Or with HTTPS termination at container level
+docker run -d \
+  -p 80:8080 \
+  -p 443:8443 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ASPNETCORE_URLS="http://+:8080;https://+:8443" \
+  -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/cert.pfx \
+  -e ASPNETCORE_Kestrel__Certificates__Default__Password=${CERT_PASSWORD} \
+  -v /path/to/certs:/https:ro \
+  brompton-dam-bff:latest
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASPNETCORE_ENVIRONMENT` | Environment (Development/Production) | Production |
+| `ResourceSpace__BaseUrl` | ResourceSpace API URL | - |
+| `ResourceSpace__DefaultUser` | Default RS user | admin |
+| `ResourceSpace__TimeoutSeconds` | API timeout | 30 |
+
+### Health Check
+
+```bash
+curl http://localhost/health
+```
+
+### Production Recommendations
+
+1. **Use a container registry:**
+   ```bash
+   docker build -t your-registry/brompton-dam-bff:1.0.0 .
+   docker push your-registry/brompton-dam-bff:1.0.0
+   ```
+
+2. **Configure secrets properly:**
+   - Use Docker secrets, Azure Key Vault, or environment variables from CI/CD
+   - Never commit API keys to the repository
+
+3. **Use a reverse proxy (recommended):**
+   - nginx, Traefik, or cloud load balancer for TLS termination
+   - Centralised certificate management
+   - Rate limiting and additional security
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                 Bloomreach Content SaaS                      │
+│                 Bloomreach Content SaaS                     │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │                   Asset Picker UI                       │ │
+│  │              DAM Asset Picker UI (apps/web)            │ │
 │  └────────────────────────────────────────────────────────┘ │
 └─────────────────────────┬───────────────────────────────────┘
-                          │ Authorization: Bearer {api_key}
+                          │ REST API
+                          │ Authorization: Bearer {rs_api_key}
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              Brompton.DigitalAssetManager.Bff               │
+│                    BFF API (apps/bff)                       │
 │  ┌──────────┐  ┌─────────────────┐  ┌──────────────────┐   │
-│  │ Endpoints │──│ ResourceSpace   │──│ Structured       │   │
-│  │           │  │ Client          │  │ Logging          │   │
+│  │ Endpoints │──│ ResourceSpace   │──│ Serilog          │   │
+│  │ (Minimal) │  │ Client          │  │ Logging          │   │
 │  └──────────┘  └─────────────────┘  └──────────────────┘   │
+│                        │                                    │
+│              ┌─────────┴─────────┐                         │
+│              │ Polly Resilience  │                         │
+│              │ (Retry + Breaker) │                         │
+│              └───────────────────┘                         │
 └─────────────────────────┬───────────────────────────────────┘
                           │ Signed API Calls (SHA256)
+                          │ Batch requests for performance
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    ResourceSpace DAM                         │
-│                    (REST API)                                │
+│                    ResourceSpace DAM                        │
+│                      (REST API)                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
