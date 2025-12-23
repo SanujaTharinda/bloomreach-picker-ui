@@ -12,6 +12,7 @@ class AuthService {
    */
   setApiKey(apiKey: string | null): void {
     if (apiKey) {
+      console.log('Setting API key', apiKey)
       restApiService.setApiKey(apiKey)
     }
   }

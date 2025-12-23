@@ -9,6 +9,7 @@ export interface UseAuthenticationReturn {
   isAuthenticated: boolean
   authLoading: boolean
   authError: string
+  apiKeySet: boolean
   handleAuthError?: (error: any) => void
   markAuthVerified?: () => void
 }

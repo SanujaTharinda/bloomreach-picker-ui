@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { assetsService } from '../services/assetsService'
-import { authService } from '../services/authService'
 import { useAuthContext } from '../contexts/AuthContext'
 import { useBloomreachContext } from '../contexts/BloomreachContext'
 import { serializeAsset, parseAssetIdFromValue } from '../utils/assetUtils'
@@ -12,8 +11,8 @@ export const useAssets = (
   selectedCollectionId: string | null,
   viewAll: boolean = false
 ): UseAssetsReturn => {
-  const { handleAuthError } = useAuthContext()
-  const { ui, isDialogMode, mode, currentValue, dialogCurrentValue, isLoading: extensionLoading } = useBloomreachContext()
+  const { handleAuthError, apiKeySet } = useAuthContext()
+  const { ui, isDialogMode, mode, currentValue, dialogCurrentValue } = useBloomreachContext()
   const [assets, setAssets] = useState<Asset[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -31,14 +30,11 @@ export const useAssets = (
   const totalPages = Math.ceil(totalAssets / pageSize) || 1
 
   // Load assets when dependencies change
-  // Try loading immediately - auth will be determined by API response
+  // Wait for API key to be set before making the call
   useEffect(() => {
     const loadAssets = async () => {
-      // Wait for extension to load (so API key is available)
-      if (extensionLoading) return
-      
-      // Check if API key is available before making the call
-      if (!authService.hasApiKey()) return
+      // Wait for API key to be set before making the call
+      if (!apiKeySet) return
 
       // If viewAll is false and no collection selected, don't load
       if (!viewAll && !selectedCollectionId) {
@@ -82,7 +78,7 @@ export const useAssets = (
     }
 
     loadAssets()
-  }, [selectedCollectionId, extensionLoading, currentPage, searchQuery, viewAll, pageSize, handleAuthError])
+  }, [selectedCollectionId, apiKeySet, currentPage, searchQuery, viewAll, pageSize, handleAuthError])
 
   // Reset to page 1 and clear search when collection or view mode changes
   useEffect(() => {

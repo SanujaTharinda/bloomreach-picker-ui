@@ -9,6 +9,7 @@ export const useAuthentication = (): UseAuthenticationReturn => {
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState<string>('')
   const [hasVerifiedAuth, setHasVerifiedAuth] = useState(false) // Track if we've verified auth via API call
+  const [apiKeySet, setApiKeySet] = useState(false) // Track if API key has been set in authService
 
   // Function to handle authentication errors from API calls
   const handleAuthError = useCallback((error: any) => {
@@ -35,6 +36,8 @@ export const useAuthentication = (): UseAuthenticationReturn => {
   useEffect(() => {
     if (extensionLoading) return
 
+    console.log('extensionLoading', extensionLoading)
+    console.log('getApiKey', getApiKey())
     const apiKey = getApiKey()
 
     if (!apiKey) {
@@ -49,6 +52,7 @@ export const useAuthentication = (): UseAuthenticationReturn => {
 
     // Set the API key in the service
     authService.setApiKey(apiKey)
+    setApiKeySet(true) // Mark API key as set so dependent hooks can proceed
     // Keep authLoading as true until we verify via API call
     // Don't set authLoading to false here - wait for first API call to complete
   }, [extensionLoading, getApiKey])
@@ -58,6 +62,7 @@ export const useAuthentication = (): UseAuthenticationReturn => {
     isAuthenticated,
     authLoading,
     authError,
+    apiKeySet,
     handleAuthError, // Expose for use in hooks
     markAuthVerified, // Expose for use in hooks to mark auth as verified after successful API call
   }

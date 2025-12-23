@@ -1,33 +1,31 @@
 import { useEffect, useState, useCallback } from 'react'
 import { collectionsService } from '../services/collectionsService'
-import { authService } from '../services/authService'
 import { useAuthContext } from '../contexts/AuthContext'
-import { useBloomreachContext } from '../contexts/BloomreachContext'
 import { findCollectionById } from '../utils/assetUtils'
 import type { UseCollectionsReturn, Collection } from '../types'
 
 export const useCollections = (): UseCollectionsReturn => {
-  const { handleAuthError, markAuthVerified } = useAuthContext()
-  const { isLoading: extensionLoading } = useBloomreachContext()
+  const { handleAuthError, markAuthVerified, apiKeySet } = useAuthContext()
   const [collections, setCollections] = useState<Collection[]>([])
   const [collectionsLoading, setCollectionsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null)
 
   // Load root collections only (for lazy loading)
-  // Try loading immediately - auth will be determined by API response
+  // Wait for API key to be set before making the call
   useEffect(() => {
     const loadCollections = async () => {
-      // Wait for extension to load (so API key is available)
-      if (extensionLoading) return
-      
-      // Check if API key is available before making the call
-      if (!authService.hasApiKey()) return
+      console.log('Loading collections, apiKeySet:', apiKeySet)
+      // Wait for API key to be set before making the call
+      if (!apiKeySet) return
+      console.log('API key is set, proceeding to load collections')
 
       try {
         setCollectionsLoading(true)
         setError(null)
+        console.log('Calling collectionsService.getRootCollections()')
         const collectionsData = await collectionsService.getRootCollections()
+        console.log('Collections loaded', collectionsData)
         setCollections(collectionsData)
         // Mark authentication as verified after successful API call
         if (markAuthVerified) {
@@ -54,7 +52,7 @@ export const useCollections = (): UseCollectionsReturn => {
     }
 
     loadCollections()
-  }, [extensionLoading, handleAuthError, markAuthVerified])
+  }, [apiKeySet, handleAuthError, markAuthVerified])
 
   // Function to load children of a collection (for lazy loading)
   const loadCollectionChildren = useCallback(
