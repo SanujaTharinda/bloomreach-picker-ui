@@ -1,0 +1,6 @@
+@Brompton.DigitalAssetManager.Bff_HostAddress = http://localhost:5293
+
+GET {{Brompton.DigitalAssetManager.Bff_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

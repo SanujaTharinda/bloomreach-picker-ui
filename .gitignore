@@ -34,7 +34,7 @@ pnpm-debug.log*
 .env.local
 
 # =========================
-# .NET (apps/api)
+# .NET (apps/bff)
 # =========================
 bin/
 obj/
@@ -46,7 +46,13 @@ obj/
 *.pdb
 project.lock.json
 
-# .NET user settings
-appsettings.Development.json
+# .NET user settings (keep appsettings.Development.json, use user-secrets for sensitive data)
 appsettings.Local.json
 secrets.json
+
+# BFF logs
+apps/bff/logs/
+
+# NuGet
+*.nupkg
+.nuget/
