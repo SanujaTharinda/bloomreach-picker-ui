@@ -1,5 +1,5 @@
 # ResourceSpace Docker Compose
-# https://www.resourcespace.com/knowledge-base/systemadmin/install_docker
+# https://github.com/resourcespace/docker
 #
 # Usage:
 #   Local (with MariaDB):     docker compose --profile local up --build -d
@@ -15,9 +15,9 @@ services:
       - "${RS_PORT:-80}:80"
     volumes:
       # Persist filestore (uploaded assets)
-      - resourcespace_filestore:/var/www/resourcespace/filestore
+      - resourcespace_filestore:/var/www/html/filestore
       # Persist include folder for config
-      - resourcespace_include:/var/www/resourcespace/include
+      - resourcespace_include:/var/www/html/include
     environment:
       # Database
       - DB_HOST=${DB_HOST:-mariadb}

@@ -2,7 +2,9 @@
 
 Custom Docker setup for ResourceSpace DAM.
 
-Based on the [official ResourceSpace Docker installation guide](https://www.resourcespace.com/knowledge-base/systemadmin/install_docker).
+Based on the [official ResourceSpace Docker repository](https://github.com/resourcespace/docker).
+
+> **Note**: ResourceSpace doesn't publish a pre-built Docker image. This Dockerfile builds from source by cloning the official ResourceSpace repository during the build process.
 
 ## Quick Start
 
@@ -57,8 +59,10 @@ When you first access ResourceSpace, the setup wizard will appear:
 
 ```
 services/resourcespace/
-├── Dockerfile              # Custom image based on official RS
+├── Dockerfile              # Builds RS from source (clones official repo)
 ├── docker-compose.yml      # Multi-environment setup with profiles
+├── entrypoint.sh           # Container startup script
+├── cronjob                 # Scheduled tasks configuration
 ├── .env                    # Your secrets (gitignored)
 ├── .env.example            # Template for staging/prod
 ├── .env.local.example      # Template for local development
@@ -159,6 +163,16 @@ docker compose --profile local up --build -d
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Build Details
+
+The Dockerfile:
+1. Uses Ubuntu 22.04 as base
+2. Installs all required dependencies (PHP, Apache, ImageMagick, FFmpeg, etc.)
+3. Clones ResourceSpace from official GitHub repository
+4. Configures Apache with custom virtual host
+5. Sets up cron jobs for scheduled tasks
+6. Applies custom configuration from `config/config.php`
+
 ## Troubleshooting
 
 ### Blank page during setup
@@ -173,9 +187,19 @@ docker compose --profile local up --build -d
 - **Cause**: Empty or invalid `RS_SCRAMBLE_KEY` / `RS_API_SCRAMBLE_KEY`
 - **Fix**: Generate new keys with `openssl rand -hex 32`
 
+### Build takes too long
+- **Cause**: Cloning ResourceSpace repo and installing dependencies
+- **Fix**: This is normal for first build. Subsequent builds use cache.
+
+## References
+
+- [Official ResourceSpace Docker Repository](https://github.com/resourcespace/docker)
+- [ResourceSpace Docker Installation Guide](https://www.resourcespace.com/knowledge-base/systemadmin/install_docker)
+- [ResourceSpace Configuration Options](https://www.resourcespace.com/knowledge-base/systemadmin/config_file)
+
 ## Notes
 
-- The official ResourceSpace Docker image is used as the base
+- ResourceSpace is built from source during Docker build (no pre-built image available)
 - Local development uses MariaDB container (via `--profile local`)
 - Staging/Production connects to Azure MySQL (no profile needed)
 - For production, consider Azure Blob Storage for filestore

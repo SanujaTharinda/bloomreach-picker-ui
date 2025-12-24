@@ -31,7 +31,7 @@ $applicationname = getenv('RS_APP_NAME') ?: 'Brompton Digital Asset Management';
 // =============================================================================
 // Storage Settings
 // =============================================================================
-$storagedir = '/var/www/resourcespace/filestore';
+$storagedir = '/var/www/html/filestore';
 
 // =============================================================================
 // Security Settings
