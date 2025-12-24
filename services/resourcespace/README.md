@@ -163,13 +163,174 @@ docker compose --profile local up --build -d
 └─────────────────────────────────────────────────────────────┘
 ```
 
+---
+
+## Azure App Service Deployment
+
+### Prerequisites
+
+- Azure Container Registry (ACR) or Docker Hub account
+- Azure MySQL Flexible Server
+- Azure Storage Account (for filestore persistence)
+
+### Step 1: Push Image to Container Registry
+
+```bash
+cd services/resourcespace
+
+# Option A: Azure Container Registry
+az acr login --name yourregistry
+docker build -t yourregistry.azurecr.io/resourcespace:latest .
+docker push yourregistry.azurecr.io/resourcespace:latest
+
+# Option B: Docker Hub
+docker build -t yourusername/resourcespace:latest .
+docker push yourusername/resourcespace:latest
+```
+
+### Step 2: Create App Service
+
+```bash
+# Create App Service Plan
+az appservice plan create \
+  --name resourcespace-plan \
+  --resource-group your-rg \
+  --is-linux \
+  --sku B1
+
+# Create Web App (Container)
+az webapp create \
+  --name your-resourcespace-app \
+  --resource-group your-rg \
+  --plan resourcespace-plan \
+  --deployment-container-image-name yourregistry.azurecr.io/resourcespace:latest
+```
+
+### Step 3: Configure Environment Variables
+
+On App Service, environment variables are set via **Application Settings** (not `.env` files):
+
+```bash
+az webapp config appsettings set \
+  --resource-group your-rg \
+  --name your-resourcespace-app \
+  --settings \
+    DB_HOST="your-server.mysql.database.azure.com" \
+    DB_NAME="resourcespace" \
+    DB_USER="user@your-server" \
+    DB_PASSWORD="your-secure-password" \
+    RS_BASE_URL="https://your-resourcespace-app.azurewebsites.net" \
+    RS_APP_NAME="Brompton Digital Asset Management" \
+    RS_SCRAMBLE_KEY="$(openssl rand -hex 32)" \
+    RS_API_SCRAMBLE_KEY="$(openssl rand -hex 32)" \
+    RS_EMAIL_FROM="noreply@brompton.com" \
+    RS_EMAIL_NOTIFY="admin@brompton.com" \
+    WEBSITES_PORT="80"
+```
+
+### Step 4: Configure Persistent Storage (Azure Files)
+
+⚠️ **Critical**: App Service containers don't persist data by default. Mount Azure Files for the filestore:
+
+```bash
+# Create Storage Account (if not exists)
+az storage account create \
+  --name yourstorageaccount \
+  --resource-group your-rg \
+  --sku Standard_LRS
+
+# Get storage key
+STORAGE_KEY=$(az storage account keys list \
+  --account-name yourstorageaccount \
+  --resource-group your-rg \
+  --query "[0].value" -o tsv)
+
+# Create File Share
+az storage share create \
+  --name resourcespace-filestore \
+  --account-name yourstorageaccount
+
+# Mount to App Service
+az webapp config storage-account add \
+  --resource-group your-rg \
+  --name your-resourcespace-app \
+  --custom-id filestore \
+  --storage-type AzureFiles \
+  --share-name resourcespace-filestore \
+  --account-name yourstorageaccount \
+  --access-key "$STORAGE_KEY" \
+  --mount-path /var/www/html/filestore
+```
+
+### Step 5: Configure Azure MySQL Firewall
+
+Allow App Service to connect to MySQL:
+
+```bash
+# Allow all Azure services
+az mysql flexible-server firewall-rule create \
+  --resource-group your-rg \
+  --name your-mysql-server \
+  --rule-name AllowAzureServices \
+  --start-ip-address 0.0.0.0 \
+  --end-ip-address 0.0.0.0
+```
+
+### Step 6: Access and Complete Setup
+
+1. Navigate to `https://your-resourcespace-app.azurewebsites.net`
+2. Complete the ResourceSpace setup wizard
+3. Enter Azure MySQL connection details when prompted
+
+### Azure Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    AZURE APP SERVICE                         │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌──────────────────┐                                       │
+│  │   App Service    │                                       │
+│  │   (Container)    │                                       │
+│  │                  │                                       │
+│  │  ResourceSpace   │                                       │
+│  └────────┬─────────┘                                       │
+│           │                                                  │
+│     ┌─────┴─────┐                                           │
+│     │           │                                           │
+│     ▼           ▼                                           │
+│  ┌──────────┐  ┌──────────────┐                             │
+│  │  Azure   │  │ Azure MySQL  │                             │
+│  │  Files   │  │  Flexible    │                             │
+│  │(filestore)│  │   Server    │                             │
+│  └──────────┘  └──────────────┘                             │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Deployment Checklist
+
+| Step | Action | Status |
+|------|--------|--------|
+| 1 | Build and push Docker image to registry | ⬜ |
+| 2 | Create App Service (Container) | ⬜ |
+| 3 | Set environment variables in App Service | ⬜ |
+| 4 | Create Azure Storage Account | ⬜ |
+| 5 | Mount Azure Files for filestore | ⬜ |
+| 6 | Configure MySQL firewall rules | ⬜ |
+| 7 | Set `WEBSITES_PORT=80` | ⬜ |
+| 8 | Set correct `RS_BASE_URL` | ⬜ |
+| 9 | Run RS setup wizard | ⬜ |
+
+---
+
 ## Build Details
 
 The Dockerfile:
 1. Uses Ubuntu 22.04 as base
 2. Installs all required dependencies (PHP, Apache, ImageMagick, FFmpeg, etc.)
 3. Clones ResourceSpace from official GitHub repository
-4. Configures Apache with custom virtual host
+4. Configures Apache to allow `.htaccess` overrides
 5. Sets up cron jobs for scheduled tasks
 6. Applies custom configuration from `config/config.php`
 
@@ -191,16 +352,31 @@ The Dockerfile:
 - **Cause**: Cloning ResourceSpace repo and installing dependencies
 - **Fix**: This is normal for first build. Subsequent builds use cache.
 
+### Azure: Container not starting
+- **Cause**: Missing `WEBSITES_PORT` setting
+- **Fix**: Set `WEBSITES_PORT=80` in App Service configuration
+
+### Azure: Filestore data lost on restart
+- **Cause**: Azure Files not mounted
+- **Fix**: Mount Azure Files to `/var/www/html/filestore`
+
+### Azure: Database connection timeout
+- **Cause**: MySQL firewall blocking App Service
+- **Fix**: Add firewall rule to allow Azure services (0.0.0.0)
+
 ## References
 
 - [Official ResourceSpace Docker Repository](https://github.com/resourcespace/docker)
 - [ResourceSpace Docker Installation Guide](https://www.resourcespace.com/knowledge-base/systemadmin/install_docker)
 - [ResourceSpace Configuration Options](https://www.resourcespace.com/knowledge-base/systemadmin/config_file)
+- [Azure App Service Container Docs](https://docs.microsoft.com/en-us/azure/app-service/configure-custom-container)
+- [Azure Files Mount for App Service](https://docs.microsoft.com/en-us/azure/app-service/configure-connect-to-azure-storage)
 
 ## Notes
 
 - ResourceSpace is built from source during Docker build (no pre-built image available)
 - Local development uses MariaDB container (via `--profile local`)
 - Staging/Production connects to Azure MySQL (no profile needed)
-- For production, consider Azure Blob Storage for filestore
+- For Azure deployment, use Azure Files for persistent filestore storage
+- Environment variables on App Service are set via Application Settings, not `.env` files
 - All configuration is via environment variables for flexibility
