@@ -1,4 +1,4 @@
-# ResourceSpace scheduled tasks
-# Runs every 5 minutes
-*/5 * * * * www-data php /var/www/html/pages/tools/cron_copy_hitcount.php > /dev/null 2>&1
-*/5 * * * * www-data php /var/www/html/pages/tools/update_checksums.php > /dev/null 2>&1
+#!/bin/bash
+# ResourceSpace daily cron job
+php /var/www/html/pages/tools/cron_copy_hitcount.php
+php /var/www/html/pages/tools/update_checksums.php
