@@ -48,7 +48,7 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
     }
     
     return breadcrumb.map((collection, index) => {
-      const isClickable = collection.isLeaf
+      const isClickable = collection.hasResources
       const isLast = index === breadcrumb.length - 1
       
       const handleClick = (e: React.MouseEvent) => {

@@ -20,7 +20,7 @@ class CollectionsService {
       name: apiCollection.name,
       parentId,
       path: path === '/' ? `/${apiCollection.name}` : `${path}/${apiCollection.name}`,
-      isLeaf: apiCollection.hasResources, // A collection is a leaf if it has resources/assets (selectable)
+      hasResources: apiCollection.hasResources, // Whether the collection has resources/assets (selectable)
       hasChildren: apiCollection.hasChildren, // Whether the collection has child collections (expandable)
     }
   }

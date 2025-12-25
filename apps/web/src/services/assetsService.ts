@@ -105,6 +105,8 @@ class AssetsService {
     } = params
 
     try {
+      let apiResponse: ApiAssetsSearchResponse
+
       let response: { data: ApiAssetsSearchResponse }
 
       if (viewAll || !collectionId) {
@@ -130,7 +132,8 @@ class AssetsService {
         )
       }
 
-      const apiResponse = response.data
+      apiResponse = response.data
+      
 
       // Map API assets to internal format
       const assets = apiResponse.items.map((apiAsset) => this.mapApiAssetToAsset(apiAsset))

@@ -14,19 +14,26 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
 }) => {
   // State to manage the tree data structure
   const [treeData, setTreeData] = useState<DataNode[]>([])
+  // Map to track hasResources and hasChildren for all loaded collections (including nested children)
+  const [collectionPropsMap, setCollectionPropsMap] = useState<Map<string, { hasResources: boolean; hasChildren: boolean }>>(new Map())
 
   // Convert a single collection to DataNode format
   const convertCollectionToNode = useCallback((collection: Collection): DataNode => {
-    // Use hasChildren from the collection (not derived from isLeaf)
-    // A collection can have both resources (isLeaf=true) and children (hasChildren=true)
+    // A collection can have both resources (hasResources=true) and children (hasChildren=true)
+    // A collection is selectable if it has resources OR if it's a leaf node (both hasChildren and hasResources are false)
+    const isSelectable = collection.hasResources || (!collection.hasChildren && !collection.hasResources)
+    
     return {
       title: collection.name,
       key: collection.id,
       icon: collection.hasChildren ? <FolderOutlined /> : <FolderOpenOutlined />,
       isLeaf: !collection.hasChildren, // Ant Design Tree: isLeaf means no children to expand
-      selectable: collection.isLeaf, // Only allow selection of collections with resources
-      className: !collection.isLeaf ? 'non-selectable-tree-node' : undefined,
-    }
+      selectable: true, // Always allow onSelect to be called, we'll filter in handleSelect
+      className: !isSelectable ? 'non-selectable-tree-node' : undefined,
+      // Store hasResources and hasChildren as custom properties for easy lookup
+      hasResources: collection.hasResources,
+      hasChildren: collection.hasChildren,
+    } as DataNode & { hasResources: boolean; hasChildren: boolean }
   }, [])
 
   // Update tree data when collections prop changes
@@ -34,8 +41,20 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
     if (collections.length > 0) {
       const nodes = collections.map(convertCollectionToNode)
       setTreeData(nodes)
+      // Update collection properties map
+      setCollectionPropsMap((prevMap) => {
+        const newMap = new Map(prevMap)
+        collections.forEach((collection) => {
+          newMap.set(collection.id, {
+            hasResources: collection.hasResources,
+            hasChildren: collection.hasChildren,
+          })
+        })
+        return newMap
+      })
     } else {
       setTreeData([])
+      setCollectionPropsMap(new Map())
     }
   }, [collections, convertCollectionToNode])
 
@@ -56,6 +75,18 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
       try {
         // Load children for this collection
         const children = await loadCollectionChildren(node.key as string)
+
+        // Update collection properties map with loaded children
+        setCollectionPropsMap((prevMap) => {
+          const newMap = new Map(prevMap)
+          children.forEach((collection) => {
+            newMap.set(collection.id, {
+              hasResources: collection.hasResources,
+              hasChildren: collection.hasChildren,
+            })
+          })
+          return newMap
+        })
 
         // Update the tree data with the loaded children
         setTreeData((prevTreeData) => {
@@ -89,30 +120,23 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
     (selectedKeys: React.Key[]) => {
       if (selectedKeys.length > 0) {
         const collectionId = selectedKeys[0] as string
-        // Find the node in the tree to check if it's a leaf
-        const findNode = (nodes: DataNode[]): DataNode | null => {
-          for (const node of nodes) {
-            if (node.key === collectionId) {
-              return node
-            }
-            if (node.children) {
-              const found = findNode(node.children)
-              if (found) return found
-            }
-          }
-          return null
-        }
-
-        const node = findNode(treeData)
-        // Only allow selection of leaf collections
-        if (node && node.isLeaf) {
+        
+        // Get collection properties from our map
+        const props = collectionPropsMap.get(collectionId)
+        const hasResources = props?.hasResources ?? false
+        const hasChildren = props?.hasChildren ?? false
+        
+        // Allow selection if:
+        // 1. Collection has resources (existing behavior), OR
+        // 2. Collection is a leaf node with no resources (both hasChildren and hasResources are false)
+        if (hasResources || (!hasChildren && !hasResources)) {
           onSelectCollection(collectionId)
         }
       } else {
         onSelectCollection(null)
       }
     },
-    [treeData, onSelectCollection]
+    [collectionPropsMap, onSelectCollection]
   )
 
   if (loading) {

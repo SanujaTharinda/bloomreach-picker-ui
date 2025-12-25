@@ -37,11 +37,11 @@ export interface Collection {
   name: string
   parentId: string | null
   path: string
-  isLeaf: boolean // true if collection has resources/assets (selectable)
+  hasResources: boolean // true if collection has resources/assets (selectable)
   hasChildren: boolean // true if collection has child collections (expandable)
   children?: Collection[]
   // Note: path is derived from the tree structure, not from API
-  // Note: isLeaf and hasChildren are independent - a collection can have both
+  // Note: hasResources and hasChildren are independent - a collection can have both
 }
 
 export interface SerializedAttachment {

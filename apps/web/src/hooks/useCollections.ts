@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { collectionsService } from '../services/collectionsService'
 import { useAuthContext } from '../contexts/AuthContext'
-import { findCollectionById } from '../utils/assetUtils'
 import type { UseCollectionsReturn, Collection } from '../types'
 
 export const useCollections = (): UseCollectionsReturn => {
@@ -62,26 +61,35 @@ export const useCollections = (): UseCollectionsReturn => {
         return children
       } catch (err: any) {
         console.error(`Failed to load children for collection ${collectionId}:`, err)
+        
+        // Check if it's an authentication error
+        if (err?.status === 401 || err?.status === 403 || err?.code === 'UNAUTHORIZED') {
+          if (handleAuthError) {
+            handleAuthError(err)
+          }
+        }
+        
         throw err
       }
     },
-    []
+    [handleAuthError]
   )
 
   // Handle collection selection
+  // Note: CollectionsTree already validates hasResources before calling this,
+  // so we can trust that if collectionId is provided, it's valid
   const handleSelectCollection = useCallback(
     (collectionId: string | null) => {
       if (collectionId === null) {
         setSelectedCollectionId(null)
         return
       }
-      // Only select leaf collections
-      const collection = findCollectionById(collections, collectionId)
-      if (collection && collection.isLeaf) {
-        setSelectedCollectionId(collectionId)
-      }
+      // CollectionsTree already validated that this collection has resources,
+      // so we can directly set it. For nested collections, they may not be
+      // in the root collections array, but they're still valid selections.
+      setSelectedCollectionId(collectionId)
     },
-    [collections]
+    []
   )
 
   return {
