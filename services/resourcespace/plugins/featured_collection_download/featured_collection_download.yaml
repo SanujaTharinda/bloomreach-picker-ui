@@ -1,0 +1,13 @@
+name: featured_collection_download
+version: 1.0
+title: Featured Collection Download
+desc: Enables downloading all assets from featured collections including child collections as a hierarchical ZIP archive.
+author: Brompton
+info_url: ""
+config_url: ""
+default_priority: 999
+icon: fa-solid fa-download
+category: Collections
+disable_group_select: 0
+
+
