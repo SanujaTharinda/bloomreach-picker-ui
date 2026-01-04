@@ -107,11 +107,19 @@ export const useAssets = (
       }
 
       setSelectedAssetId(asset.id)
+      setAssetsLoading(true) // Show loading indicator while fetching asset details
 
       try {
-        // Serialize the asset into the required format
-        // Note: serializeAsset will set cdn_url to fullUrl automatically
-        const serialized = serializeAsset(asset)
+        // Fetch full asset details to get the proper URL (not thumbnail)
+        const assetDetail = await assetsService.getAssetById(asset.id)
+        
+        if (!assetDetail) {
+          throw new Error(`Asset ${asset.id} not found`)
+        }
+
+        // Serialize the asset detail into the required format
+        // This will use the proper URL from the asset detail endpoint
+        const serialized = serializeAsset(assetDetail)
         const serializedValue = JSON.stringify([serialized])
 
         if (isDialogMode) {
@@ -134,6 +142,8 @@ export const useAssets = (
         // Reset selection on error
         setSelectedAssetId(null)
         throw err
+      } finally {
+        setAssetsLoading(false) // Clear loading indicator
       }
     },
     [ui, isDialogMode, mode]

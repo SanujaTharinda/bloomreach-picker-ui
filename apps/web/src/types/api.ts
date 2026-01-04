@@ -37,20 +37,20 @@ export interface ApiAssetDetails {
   id: string
   title: string
   description?: string
-  fullUrl: string
-  thumbnailUrl: string
+  url: string // BFF returns 'url', not 'fullUrl'
+  thumbnailUrl?: string
   previewUrl?: string
-  dimensions: { width: number; height: number }
-  fileSize: number
-  fileExtension: string
-  mimeType: string
+  dimensions?: { width: number; height: number }
+  fileSize?: number
+  fileExtension?: string
+  mimeType?: string
   metadata?: {
     keywords?: string
     photographer?: string
     [key: string]: any
   }
-  createdAt: string
-  modifiedAt: string
+  createdAt?: string
+  modifiedAt?: string
 }
 
 export interface ApiAssetsSearchResponse {
