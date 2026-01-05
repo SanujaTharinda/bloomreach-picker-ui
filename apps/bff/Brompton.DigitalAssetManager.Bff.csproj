@@ -4,6 +4,11 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    
+    <!-- Use Workstation GC by default for lower memory footprint (~30% less RAM).
+         This is optimal for BFF/proxy services with moderate traffic.
+         To switch to Server GC for high-throughput scenarios, set env var: DOTNET_gcServer=1 -->
+    <ServerGarbageCollection>false</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>

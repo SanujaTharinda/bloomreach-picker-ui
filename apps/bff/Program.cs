@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Brompton.DigitalAssetManager.Bff.Configuration;
 using Brompton.DigitalAssetManager.Bff.Endpoints;
 using Brompton.DigitalAssetManager.Bff.Infrastructure;
@@ -106,13 +107,43 @@ try
         app.MapOpenApi();
     }
 
-    // Health check endpoint
-    app.MapGet("/health", () => Results.Ok(new 
-    { 
-        status = "healthy", 
-        timestamp = DateTime.UtcNow,
-        version = "1.0.0"
-    }))
+    // Health check endpoint with memory diagnostics
+    app.MapGet("/health", (bool? forceGc) =>
+    {
+        // Optionally force GC for accurate memory reading
+        if (forceGc == true)
+        {
+            GC.Collect(2, GCCollectionMode.Forced, true);
+            GC.WaitForPendingFinalizers();
+            GC.Collect(2, GCCollectionMode.Forced, true);
+        }
+        
+        var process = Process.GetCurrentProcess();
+        var gcInfo = GC.GetGCMemoryInfo();
+        
+        return Results.Ok(new
+        {
+            status = "healthy",
+            timestamp = DateTime.UtcNow,
+            version = "1.0.0",
+            memory = new
+            {
+                workingSetMb = Math.Round(process.WorkingSet64 / 1024.0 / 1024.0, 2),
+                privateMemoryMb = Math.Round(process.PrivateMemorySize64 / 1024.0 / 1024.0, 2),
+                gcHeapSizeMb = Math.Round(GC.GetTotalMemory(forceGc == true) / 1024.0 / 1024.0, 2),
+                gcHeapAllocatedMb = Math.Round(gcInfo.HeapSizeBytes / 1024.0 / 1024.0, 2),
+                gen0Collections = GC.CollectionCount(0),
+                gen1Collections = GC.CollectionCount(1),
+                gen2Collections = GC.CollectionCount(2)
+            },
+            runtime = new
+            {
+                framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+                gcMode = System.Runtime.GCSettings.IsServerGC ? "Server" : "Workstation",
+                processors = Environment.ProcessorCount
+            }
+        });
+    })
     .WithName("HealthCheck")
     .WithTags("System")
     .ExcludeFromDescription();
