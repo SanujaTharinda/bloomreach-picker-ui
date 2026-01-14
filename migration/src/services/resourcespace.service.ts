@@ -293,14 +293,24 @@ export class ResourceSpaceService {
   /**
    * Get resource full URL (original quality)
    * Uses get_resource_path API
+   * @param ref Resource ID
+   * @param extension Optional file extension (e.g., 'mp4', 'jpg') - required for non-image files to get correct URL
    */
-  async getResourceFullUrl(ref: number): Promise<string> {
+  async getResourceFullUrl(ref: number, extension?: string): Promise<string> {
     const fullUrlParams: Record<string, string> = {
       ref: ref.toString(),
       getfilepath: 'false',
-      size: 'original', // Empty string to get the original uploaded file (not processed/resized)
-      generate: 'false',
+      size: '', // Empty string to get the original uploaded file (not processed/resized)
     };
+
+    // Add extension parameter if provided - required for non-image files (videos, documents)
+    // to get the correct file URL instead of a preview/thumbnail
+    if (extension) {
+      fullUrlParams.extension = extension.toLowerCase().replace(/^\./, ''); // Remove leading dot if present
+    }
+
+    // Log the full params for debugging
+    await Logger.info(`get_resource_path params: ${JSON.stringify(fullUrlParams)}`);
 
     const fullUrlApi = buildSignedUrl(
       this.baseUrl,
@@ -310,12 +320,17 @@ export class ResourceSpaceService {
       fullUrlParams
     );
 
+    await Logger.info(`get_resource_path API URL: ${fullUrlApi.split('&sign=')[0]}...`);
+
     const fullUrlResponse = await fetch(fullUrlApi);
     if (!fullUrlResponse.ok) {
       throw new Error(`Failed to get full URL: ${fullUrlResponse.statusText}`);
     }
     let fullUrl = await fullUrlResponse.text();
     fullUrl = fullUrl.trim().replace(/^"|"$/g, ''); // Remove quotes if present
+
+    
+    await Logger.info(`Resource URL returned: ${fullUrl}`);
     return fullUrl;
   }
 
@@ -323,13 +338,14 @@ export class ResourceSpaceService {
    * Get complete resource information formatted for B-DAM response
    */
   async getResourceForBdam(ref: number): Promise<BdamResponse> {
-    const [resourceData, fullUrl] = await Promise.all([
-      this.getResourceData(ref),
-      this.getResourceFullUrl(ref),
-    ]);
+    // Get resource data first to know the file extension
+    const resourceData = await this.getResourceData(ref);
 
     // Log resource data for debugging
-    await Logger.info(`Resource data received: ${JSON.stringify(resourceData).substring(0, 200)}...`);
+    await Logger.info(`Resource data received: ${JSON.stringify(resourceData)}`);
+
+    // Get full URL with the correct extension (required for non-image files like videos)
+    const fullUrl = await this.getResourceFullUrl(ref, resourceData.file_extension);
 
     // Use ref parameter if resourceData.ref is not available
     const resourceId = resourceData.ref ?? ref;

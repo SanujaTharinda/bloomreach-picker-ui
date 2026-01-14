@@ -327,20 +327,28 @@ async function processReference(
     await Logger.info(`Downloading from cdn_url: ${cdnUrl}`);
 
     // Step 2: Download the file from cdn_url
-    const fileBuffer = await downloadFromCdnUrl(cdnUrl);
+    const { buffer: fileBuffer, contentType: downloadedContentType } = await downloadFromCdnUrl(cdnUrl);
     await Logger.info(`Downloaded file: ${filename} (${fileBuffer.length} bytes)`);
 
+    // Step 2.5: Update filename with correct extension from Content-Type to avoid Resource Space validation errors
+    const updatedFilename = updateFilenameWithExtension(filename, downloadedContentType);
+    if (updatedFilename !== filename) {
+      await Logger.info(`Updated filename from "${filename}" to "${updatedFilename}" based on Content-Type: ${downloadedContentType}`);
+    }
+
     // Step 3: Create empty resource in Resource Space
+    // Use Content-Type header from download response to determine resource type
     await Logger.info(`Creating resource in Resource Space...`);
-    const resourceType = getResourceTypeFromMimeType(mimetype);
-    await Logger.info(`Determined resource type: ${resourceType} (from MIME type: ${mimetype || 'unknown'})`);
+    const resourceType = getResourceTypeFromMimeType(downloadedContentType || mimetype);
+    const contentTypeForUpload = downloadedContentType || mimetype;
+    await Logger.info(`Determined resource type: ${resourceType} (from Content-Type: ${downloadedContentType || mimetype || 'unknown'})`);
     resourcespaceRef = await resourcespaceService.createResource(resourceType);
     
     await Logger.info(`Created Resource Space resource with ID: ${resourcespaceRef}`);
 
     // Step 4: Upload the file to the resource
     await Logger.info(`Uploading file to Resource Space resource ${resourcespaceRef}...`);
-    await resourcespaceService.uploadFileToResource(resourcespaceRef, fileBuffer, filename, mimetype, resourceType);
+    await resourcespaceService.uploadFileToResource(resourcespaceRef, fileBuffer, updatedFilename, contentTypeForUpload, resourceType);
 
     // Step 5: Add resource to collection
     await Logger.info(`Adding resource ${resourcespaceRef} to collection ${collectionId}...`);
@@ -362,6 +370,72 @@ async function processReference(
     ...reference,
     bdamValue: JSON.stringify([bdamResponse]),
   };
+}
+
+/**
+ * Get file extension from Content-Type/MIME type
+ */
+function getExtensionFromContentType(contentType: string | null): string {
+  if (!contentType) {
+    return '';
+  }
+
+  // Remove any parameters (e.g., "image/jpeg; charset=utf-8" -> "image/jpeg")
+  const mimeType = contentType.split(';')[0].trim().toLowerCase();
+
+  const mimeToExtension: Record<string, string> = {
+    'image/jpeg': '.jpg',
+    'image/jpg': '.jpg',
+    'image/png': '.png',
+    'image/gif': '.gif',
+    'image/webp': '.webp',
+    'image/svg+xml': '.svg',
+    'image/svg': '.svg',
+    'image/bmp': '.bmp',
+    'image/tiff': '.tiff',
+    'image/tif': '.tif',
+    'video/mp4': '.mp4',
+    'video/quicktime': '.mov',
+    'video/x-msvideo': '.avi',
+    'audio/mpeg': '.mp3',
+    'audio/wav': '.wav',
+    'application/pdf': '.pdf',
+    'application/msword': '.doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+    'application/vnd.ms-excel': '.xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+    'application/vnd.ms-powerpoint': '.ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+    'text/plain': '.txt',
+    'text/html': '.html',
+    'text/css': '.css',
+    'text/javascript': '.js',
+    'application/json': '.json',
+    'application/xml': '.xml',
+    'application/zip': '.zip',
+  };
+
+  return mimeToExtension[mimeType] || '';
+}
+
+/**
+ * Update filename to ensure it has the correct extension based on Content-Type
+ */
+function updateFilenameWithExtension(filename: string, contentType: string | null): string {
+  if (!contentType) {
+    return filename;
+  }
+
+  const extension = getExtensionFromContentType(contentType);
+  if (!extension) {
+    return filename; // No extension mapping found, keep original filename
+  }
+
+  // Remove existing extension if present
+  const nameWithoutExt = filename.replace(/\.[^/.]+$/, '');
+  
+  // Add the correct extension
+  return `${nameWithoutExt}${extension}`;
 }
 
 /**
@@ -427,7 +501,10 @@ async function downloadFromCdnUrl(url: string): Promise<Buffer> {
   }
 
   const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
+  return {
+    buffer: Buffer.from(arrayBuffer),
+    contentType,
+  };
 }
 
 /**
