@@ -1,6 +1,7 @@
 import { buildSignedUrl, buildQueryStringForDebug } from '../utils/resourcespace-signature.js';
 import { generateSignature } from '../utils/resourcespace-signature.js';
 import { Logger } from '../utils/logger.js';
+import { fetchWithRetry } from '../utils/fetch-with-retry.js';
 
 /**
  * Resource Space API Service
@@ -9,8 +10,6 @@ import { Logger } from '../utils/logger.js';
  */
 export interface ResourceSpaceResourceData {
   ref: number;
-  title?: string;
-  description?: string;
   file_extension?: string;
   file_size?: number;
   resource_type?: number;
@@ -44,10 +43,8 @@ export interface BdamResponse {
   description?: string;
   full_url: string;
   cdn_url: string;
-  dimensions: { width: number; height: number };
   fileSize: number;
   fileExtension: string;
-  mimeType: string;
   metadata?: Record<string, unknown>;
   createdAt: string;
   modifiedAt: string;
@@ -100,7 +97,7 @@ export class ResourceSpaceService {
     const queryStringForDebug = buildQueryStringForDebug(this.defaultUser, 'create_resource', parameters);
     await Logger.info(`Query string (without signature): ${queryStringForDebug}`);
 
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     
     // Get response text first (can only read once)
     const responseText = await response.text();
@@ -227,7 +224,7 @@ export class ResourceSpaceService {
     await Logger.info(`  - File size: ${fileBuffer.length} bytes`);
     await Logger.info(`  - Parameters: ref=${parameters.ref}, no_exif=${parameters.no_exif}, revert=${parameters.revert}`);
 
-    const response = await fetch(apiUrl, {
+    const response = await fetchWithRetry(apiUrl, {
       method: 'POST',
       body: formData,
     });
@@ -268,7 +265,7 @@ export class ResourceSpaceService {
       parameters
     );
 
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -322,75 +319,57 @@ export class ResourceSpaceService {
 
     await Logger.info(`get_resource_path API URL: ${fullUrlApi.split('&sign=')[0]}...`);
 
-    const fullUrlResponse = await fetch(fullUrlApi);
+    const fullUrlResponse = await fetchWithRetry(fullUrlApi);
     if (!fullUrlResponse.ok) {
       throw new Error(`Failed to get full URL: ${fullUrlResponse.statusText}`);
     }
     let fullUrl = await fullUrlResponse.text();
     fullUrl = fullUrl.trim().replace(/^"|"$/g, ''); // Remove quotes if present
+    fullUrl = fullUrl.replace(/\\\//g, '/'); // Remove escaped forward slashes from JSON encoding
 
-    
     await Logger.info(`Resource URL returned: ${fullUrl}`);
     return fullUrl;
   }
 
   /**
    * Get complete resource information formatted for B-DAM response
+   * @param ref Resource ID
+   * @param knownMetadata Optional - if title/description are already known, skip fetching field data
    */
-  async getResourceForBdam(ref: number): Promise<BdamResponse> {
-    // Get resource data first to know the file extension
+  async getResourceForBdam(
+    ref: number,
+    knownMetadata?: { title?: string; description?: string }
+  ): Promise<BdamResponse> {
+    // Get resource data first to know the file extension (needed for URL)
     const resourceData = await this.getResourceData(ref);
 
     // Log resource data for debugging
     await Logger.info(`Resource data received: ${JSON.stringify(resourceData)}`);
 
-    // Get full URL with the correct extension (required for non-image files like videos)
+    // Get full URL (need extension from resource data)
     const fullUrl = await this.getResourceFullUrl(ref, resourceData.file_extension);
 
     // Use ref parameter if resourceData.ref is not available
     const resourceId = resourceData.ref ?? ref;
 
+    // Use known metadata if provided, otherwise leave empty
+    // (caller should provide title/description since they already have it from Brandfolder)
+    const title = knownMetadata?.title || '';
+    const description = knownMetadata?.description || '';
+
     // Map ResourceSpace data to B-DAM response format
     // Use full_url (original quality) for both full_url and cdn_url
     return {
       id: resourceId.toString(),
-      title: resourceData.title || '',
-      description: resourceData.description || undefined,
+      title,
+      description,
       full_url: fullUrl,
       cdn_url: fullUrl, // Use original quality URL for cdn_url as well
-      dimensions: {
-        // Use image_red dimensions if available (full size), otherwise fall back to thumb
-        // Note: image_red might be a processed size, not original
-        width: resourceData.image_red_width || resourceData.thumb_width || 0,
-        height: resourceData.image_red_height || resourceData.thumb_height || 0,
-      },
       fileSize: resourceData.file_size || 0,
       fileExtension: resourceData.file_extension || '',
-      mimeType: this.getMimeTypeFromExtension(resourceData.file_extension || ''),
-      metadata: {},
       createdAt: resourceData.creation_date || new Date().toISOString(),
       modifiedAt: resourceData.modified || new Date().toISOString(),
     };
-  }
-
-  /**
-   * Get MIME type from file extension
-   */
-  private getMimeTypeFromExtension(extension: string): string {
-    const mimeTypes: Record<string, string> = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      gif: 'image/gif',
-      svg: 'image/svg+xml',
-      webp: 'image/webp',
-      mp4: 'video/mp4',
-      mov: 'video/quicktime',
-      pdf: 'application/pdf',
-    };
-
-    const ext = extension.toLowerCase().replace(/^\./, '');
-    return mimeTypes[ext] || 'application/octet-stream';
   }
 
   /**
@@ -412,7 +391,7 @@ export class ResourceSpaceService {
 
     await Logger.info(`Fetching featured collections with parent=${parent}`);
 
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -502,7 +481,7 @@ export class ResourceSpaceService {
       parameters
     );
 
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
     
     const responseText = await response.text();
     const trimmedResponse = responseText.trim();
@@ -536,6 +515,134 @@ export class ResourceSpaceService {
   }
 
   /**
+   * Update a resource field in Resource Space
+   * Uses update_field API
+   * @param resourceRef The resource ID (ref)
+   * @param fieldId The field ID (e.g., 8 for keywords, or use field name for custom fields)
+   * @param value The value to set
+   */
+  async updateResourceField(
+    resourceRef: number,
+    fieldId: string | number,
+    value: string
+  ): Promise<void> {
+    await Logger.info(`Updating field ${fieldId} for resource ${resourceRef}`);
+
+    const parameters: Record<string, string> = {
+      resource: resourceRef.toString(),
+      field: fieldId.toString(),
+      value: value,
+    };
+
+    const url = buildSignedUrl(
+      this.baseUrl,
+      this.defaultUser,
+      this.apiKey,
+      'update_field',
+      parameters
+    );
+
+    const response = await fetchWithRetry(url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      await Logger.error(`ResourceSpace update_field API HTTP error: ${response.status} ${response.statusText}`);
+      await Logger.error(`Response body: ${errorText}`);
+      throw new Error(
+        `ResourceSpace API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
+    }
+
+    const responseText = await response.text();
+    const trimmedResponse = responseText.trim();
+
+    // ResourceSpace returns "true" on success
+    if (trimmedResponse === 'false') {
+      await Logger.warn(`ResourceSpace update_field returned false for field ${fieldId} on resource ${resourceRef}`);
+    } else {
+      await Logger.info(`Successfully updated field ${fieldId} for resource ${resourceRef}`);
+    }
+  }
+
+  /**
+   * Update resource metadata from Brandfolder data
+   * Uses update_field API for each metadata field (parallel execution)
+   * @param resourceRef The resource ID
+   * @param metadata The metadata to set
+   */
+  async updateResourceMetadata(
+    resourceRef: number,
+    metadata: {
+      title?: string;
+      description?: string;
+      keywords?: string[];
+      brandfolderAssetId?: string;
+      brandfolderAttachmentId?: string;
+      /** Custom fields mapped from categorized tags: { fieldName: value } */
+      customFields?: Record<string, string>;
+    }
+  ): Promise<void> {
+    await Logger.info(`Updating metadata for resource ${resourceRef}`);
+
+    // Build list of field updates
+    const updates: Array<{ field: string; value: string }> = [];
+
+    if (metadata.title) {
+      updates.push({ field: 'title', value: metadata.title });
+    }
+
+    if (metadata.description) {
+      updates.push({ field: 'description', value: metadata.description });
+    }
+
+    if (metadata.keywords && metadata.keywords.length > 0) {
+      updates.push({ field: 'keywords', value: metadata.keywords.join(', ') });
+    }
+
+    // Add custom fields from categorized tags (e.g., bike_line, is_electric, etc.)
+    if (metadata.customFields) {
+      for (const [fieldName, value] of Object.entries(metadata.customFields)) {
+        if (value) {
+          updates.push({ field: fieldName, value });
+        }
+      }
+    }
+
+    // if (metadata.brandfolderAssetId) {
+    //   updates.push({ field: 'brandfolder_asset_id', value: metadata.brandfolderAssetId });
+    // }
+
+    // if (metadata.brandfolderAttachmentId) {
+    //   updates.push({ field: 'brandfolder_attachment_id', value: metadata.brandfolderAttachmentId });
+    // }
+
+    if (updates.length === 0) {
+      await Logger.info(`No metadata to update for resource ${resourceRef}`);
+      return;
+    }
+
+    const results = await Promise.allSettled(
+      updates.map(update => this.updateResourceField(resourceRef, update.field, update.value))
+    );
+
+    // Log results
+    let successCount = 0;
+    let failCount = 0;
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const update = updates[i];
+      if (result.status === 'rejected') {
+        await Logger.warn(`Failed to update field ${update.field} for resource ${resourceRef}: ${result.reason}`);
+        failCount++;
+      } else {
+        successCount++;
+      }
+    }
+
+    await Logger.info(`Completed metadata update for resource ${resourceRef}: ${successCount} succeeded, ${failCount} failed`);
+  }
+
+  /**
    * Add a resource to a collection
    * Uses add_resource_to_collection API
    * @param collectionId The collection ID
@@ -560,7 +667,7 @@ export class ResourceSpaceService {
       parameters
     );
 
-    const response = await fetch(url);
+    const response = await fetchWithRetry(url);
 
     if (!response.ok) {
       const errorText = await response.text();

@@ -6,6 +6,7 @@ import { extractBrandfolderReferences } from '../utils/brandfolder-extractor.js'
 import { BrandfolderReference } from '../types/index.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import ExcelJS from 'exceljs';
 
 /**
  * Build a Bloomreach CMS Brandfolder Reference Inventory
@@ -77,6 +78,7 @@ export async function buildBrandfolderInventory(args: ParsedArgs): Promise<void>
   const uniqueAssetIds = new Set<string>();
   const uniqueAttachmentIds = new Set<string>();
   let isFirstReference = true;
+  const allReferences: BrandfolderReference[] = []; // Collect all references for Excel export
 
   do {
     await Logger.info(`Fetching page: offset=${offset}, limit=${limit}...`);
@@ -99,6 +101,7 @@ export async function buildBrandfolderInventory(args: ParsedArgs): Promise<void>
     for (const document of documents) {
       const references = await extractBrandfolderReferences(document);
       batchReferences.push(...references);
+      allReferences.push(...references); // Collect for Excel export
       
       for (const ref of references) {
         uniqueAssetIds.add(ref.assetId);
@@ -142,6 +145,24 @@ export async function buildBrandfolderInventory(args: ParsedArgs): Promise<void>
     );
 
   await Logger.success(`Inventory saved to: ${outputPath}`);
+
+  // Generate Excel file
+  await Logger.info('Generating Excel file...');
+  const excelFileName = `${bloomreachFolder}-brandfolder-inventory.xlsx`;
+  const excelFilePath = path.join(phase1Dir, excelFileName);
+  await generateExcelReport(
+    excelFilePath,
+    allReferences,
+    {
+      bloomreachFolder,
+      totalDocuments: processedCount,
+      totalReferences: referenceCount,
+      uniqueAssetIds: uniqueAssetIds.size,
+      uniqueAttachmentIds: uniqueAttachmentIds.size,
+      generatedAt: new Date().toISOString(),
+    }
+  );
+  await Logger.success(`Excel file saved to: ${excelFilePath}`);
   
   // Generate summary report
   await Logger.info('\n=== Inventory Summary ===');
@@ -155,4 +176,115 @@ export async function buildBrandfolderInventory(args: ParsedArgs): Promise<void>
   if (enableFileLogging) {
     await Logger.closeFileLogging();
   }
+}
+
+/**
+ * Extract CDN URL from rawValue JSON string
+ */
+function extractCdnUrl(rawValue: string): string {
+  try {
+    const parsed = JSON.parse(rawValue) as Array<{ cdn_url?: string }>;
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].cdn_url) {
+      return parsed[0].cdn_url;
+    }
+  } catch {
+    // Parsing failed, return empty
+  }
+  return '';
+}
+
+/**
+ * Generate Excel report with summary and references table
+ */
+async function generateExcelReport(
+  filePath: string,
+  references: BrandfolderReference[],
+  summary: {
+    bloomreachFolder: string;
+    totalDocuments: number;
+    totalReferences: number;
+    uniqueAssetIds: number;
+    uniqueAttachmentIds: number;
+    generatedAt: string;
+  }
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'B-DAM Migration Tool';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('Brandfolder Inventory');
+
+  // Add summary section at the top
+  worksheet.addRow(['Phase 1: Bloomreach Brandfolder Reference Inventory Report']);
+  worksheet.addRow([]);
+  worksheet.addRow(['Summary']);
+  worksheet.addRow(['Generated At', summary.generatedAt]);
+  worksheet.addRow(['Bloomreach Folder', summary.bloomreachFolder]);
+  worksheet.addRow(['Total Documents', summary.totalDocuments]);
+  worksheet.addRow(['Total References', summary.totalReferences]);
+  worksheet.addRow(['Unique Asset IDs', summary.uniqueAssetIds]);
+  worksheet.addRow(['Unique Attachment IDs', summary.uniqueAttachmentIds]);
+  worksheet.addRow([]);
+  worksheet.addRow([]);
+
+  // Style the title
+  const titleRow = worksheet.getRow(1);
+  titleRow.font = { bold: true, size: 14 };
+  
+  // Style the summary header
+  const summaryHeaderRow = worksheet.getRow(3);
+  summaryHeaderRow.font = { bold: true };
+
+  // Add references table header
+  const headerRowNumber = 12;
+  const headers = [
+    'Brandfolder Attachment ID',
+    'Brandfolder Asset ID',
+    'Bloomreach Document ID',
+    'Bloomreach Document Path',
+    'Bloomreach Field Path',
+    'Brandfolder CDN URL',
+    'Raw Value',
+  ];
+  
+  const headerRow = worksheet.addRow(headers);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' },
+  };
+
+  // Add data rows
+  for (const ref of references) {
+    worksheet.addRow([
+      ref.attachmentId,
+      ref.assetId,
+      ref.documentId,
+      ref.documentPath,
+      ref.fieldPath,
+      extractCdnUrl(ref.rawValue),
+      ref.rawValue,
+    ]);
+  }
+
+  // Auto-fit columns (approximate widths)
+  worksheet.columns = [
+    { width: 30 },  // Attachment ID
+    { width: 30 },  // Asset ID
+    { width: 40 },  // Document ID
+    { width: 50 },  // Document Path
+    { width: 40 },  // Field Path
+    { width: 60 },  // CDN URL
+    { width: 80 },  // Raw Value
+  ];
+
+  // Add filters to the header row
+  worksheet.autoFilter = {
+    from: { row: headerRowNumber, column: 1 },
+    to: { row: headerRowNumber, column: headers.length },
+  };
+
+  // Save the workbook
+  await workbook.xlsx.writeFile(filePath);
 }

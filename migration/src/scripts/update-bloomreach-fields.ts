@@ -5,6 +5,7 @@ import { BloomreachService, BloomreachDocument } from '../services/bloomreach.se
 import { BrandfolderReferenceWithBdam } from './brandfolder-b-dam-migration.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import ExcelJS from 'exceljs';
 
 /**
  * Phase 3: Update Bloomreach Fields Script (Content Import Approach)
@@ -244,6 +245,13 @@ export async function updateBloomreachFields(args: ParsedArgs): Promise<void> {
   await fs.writeFile(resultPath, JSON.stringify(phase3Result, null, 2), 'utf-8');
   await Logger.success(`Update results saved to: ${resultPath}`);
 
+  // Step 7.5: Generate Excel report
+  await Logger.info('Generating Excel report...');
+  const excelFileName = `${bloomreachFolder}-bloomreach-updates.xlsx`;
+  const excelFilePath = path.join(phase3Dir, excelFileName);
+  await generatePhase3ExcelReport(excelFilePath, phase3Result, referencesToUpdate);
+  await Logger.success(`Excel report saved to: ${excelFilePath}`);
+
   // Step 8: Display summary
   await Logger.info('\n=== Update Summary ===');
   await Logger.info(`Bloomreach folder: ${bloomreachFolder}`);
@@ -481,6 +489,188 @@ async function readPhase2File(filePath: string): Promise<Phase2MigrationResult> 
   } catch (error) {
     throw new Error(`Failed to read phase-2 file ${filePath}: ${error}`);
   }
+}
+
+/**
+ * Generate Excel report for Phase 3 Bloomreach updates
+ */
+async function generatePhase3ExcelReport(
+  filePath: string,
+  phase3Result: Phase3UpdateResult,
+  allReferences: BrandfolderReferenceWithBdam[]
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'B-DAM Migration Tool';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('Bloomreach Updates Report');
+
+  // Add title
+  worksheet.addRow(['Phase 3: Bloomreach Field Updates Report']);
+  worksheet.addRow([]);
+
+  // Add summary section
+  worksheet.addRow(['Summary']);
+  worksheet.addRow(['Generated At', phase3Result.generatedAt]);
+  worksheet.addRow(['Bloomreach Folder', phase3Result.bloomreachFolder]);
+  worksheet.addRow(['Phase 2 Input File', phase3Result.phase2InputFile]);
+  worksheet.addRow(['NDJSON File', phase3Result.ndjsonFile]);
+  worksheet.addRow(['Bloomreach Project ID', phase3Result.projectId]);
+  worksheet.addRow([]);
+  worksheet.addRow(['Total Documents', phase3Result.summary.totalDocuments]);
+  worksheet.addRow(['Successful Documents', phase3Result.summary.successfulDocuments]);
+  worksheet.addRow(['Failed Documents', phase3Result.summary.failedDocuments]);
+  worksheet.addRow(['Total References', phase3Result.summary.totalReferences]);
+  worksheet.addRow(['Processed References', phase3Result.summary.processedReferences]);
+  worksheet.addRow([]);
+  worksheet.addRow(['Import Status', phase3Result.importError ? 'FAILED' : 'SUCCESS']);
+  if (phase3Result.importError) {
+    worksheet.addRow(['Import Error', phase3Result.importError]);
+  }
+  worksheet.addRow([]);
+  worksheet.addRow([]);
+
+  // Style the title
+  const titleRow = worksheet.getRow(1);
+  titleRow.font = { bold: true, size: 14 };
+
+  // Style the summary header
+  const summaryHeaderRow = worksheet.getRow(3);
+  summaryHeaderRow.font = { bold: true };
+
+  // Collect successful and failed document paths
+  const failedDocPaths = new Set(phase3Result.failedItems.map(item => item.documentPath));
+  
+  // Get successfully updated references (those not in failed documents)
+  const successfulRefs = allReferences.filter(ref => !failedDocPaths.has(ref.documentPath));
+  
+  // Get failed references from failedItems
+  const failedRefs: Array<{
+    documentPath: string;
+    documentId: string;
+    attachmentId: string;
+    assetId: string;
+    fieldPath: string;
+    error: string;
+  }> = [];
+  
+  for (const failedDoc of phase3Result.failedItems) {
+    for (const ref of failedDoc.references) {
+      failedRefs.push({
+        documentPath: failedDoc.documentPath,
+        documentId: failedDoc.documentId,
+        attachmentId: ref.attachmentId,
+        assetId: ref.assetId,
+        fieldPath: ref.fieldPath,
+        error: ref.error,
+      });
+    }
+  }
+
+  // Add successful updates table
+  const successStartRow = worksheet.rowCount + 1;
+  worksheet.addRow(['Successfully Updated References']);
+  const successTitleRow = worksheet.getRow(successStartRow);
+  successTitleRow.font = { bold: true, size: 12 };
+  worksheet.addRow([]);
+
+  // Successful references header
+  const successHeaders = [
+    'Bloomreach Document Path',
+    'Bloomreach Document ID',
+    'Bloomreach Field Path',
+    'Brandfolder Attachment ID',
+    'Brandfolder Asset ID',
+    'B-DAM CDN URL',
+  ];
+  const successHeaderRow = worksheet.addRow(successHeaders);
+  successHeaderRow.font = { bold: true };
+  successHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF90EE90' }, // Light green
+  };
+
+  // Add successful reference rows
+  for (const ref of successfulRefs) {
+    const bdamCdnUrl = extractBdamCdnUrl(ref.bdamValue);
+    worksheet.addRow([
+      ref.documentPath,
+      ref.documentId,
+      ref.fieldPath,
+      ref.attachmentId,
+      ref.assetId,
+      bdamCdnUrl,
+    ]);
+  }
+
+  worksheet.addRow([]);
+  worksheet.addRow([]);
+
+  // Add failed updates table
+  const failedStartRow = worksheet.rowCount + 1;
+  worksheet.addRow(['Failed Updates']);
+  const failedTitleRow = worksheet.getRow(failedStartRow);
+  failedTitleRow.font = { bold: true, size: 12 };
+  worksheet.addRow([]);
+
+  // Failed references header
+  const failedHeaders = [
+    'Bloomreach Document Path',
+    'Bloomreach Document ID',
+    'Bloomreach Field Path',
+    'Brandfolder Attachment ID',
+    'Brandfolder Asset ID',
+    'Error',
+  ];
+  const failedHeaderRow = worksheet.addRow(failedHeaders);
+  failedHeaderRow.font = { bold: true };
+  failedHeaderRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFFFCCCB' }, // Light red
+  };
+
+  // Add failed reference rows
+  for (const ref of failedRefs) {
+    worksheet.addRow([
+      ref.documentPath,
+      ref.documentId,
+      ref.fieldPath,
+      ref.attachmentId,
+      ref.assetId,
+      ref.error,
+    ]);
+  }
+
+  // Set column widths
+  worksheet.columns = [
+    { width: 50 },  // Document Path
+    { width: 40 },  // Document ID
+    { width: 40 },  // Field Path
+    { width: 30 },  // Attachment ID
+    { width: 30 },  // Asset ID
+    { width: 60 },  // CDN URL / Error
+  ];
+
+  // Save the workbook
+  await workbook.xlsx.writeFile(filePath);
+}
+
+/**
+ * Extract CDN URL from bdamValue JSON string
+ */
+function extractBdamCdnUrl(bdamValue: string | null): string {
+  if (!bdamValue) return '';
+  try {
+    const parsed = JSON.parse(bdamValue) as Array<{ cdn_url?: string }>;
+    if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].cdn_url) {
+      return parsed[0].cdn_url;
+    }
+  } catch {
+    // Parsing failed, return empty
+  }
+  return '';
 }
 
 // Type definitions

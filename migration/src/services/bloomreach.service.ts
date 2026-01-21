@@ -1,4 +1,5 @@
 import { Logger } from '../utils/logger.js';
+import { fetchWithRetry } from '../utils/fetch-with-retry.js';
 
 /**
  * Bloomreach API Service
@@ -82,7 +83,7 @@ export class BloomreachService {
     url.searchParams.set('limit', limit.toString());
     url.searchParams.set('offset', offset.toString());
 
-    const response = await fetch(url.toString());
+    const response = await fetchWithRetry(url.toString());
 
     if (!response.ok) {
       throw new Error(
@@ -115,7 +116,7 @@ export class BloomreachService {
       headers['X-AUTH-TOKEN'] = this.apiKey;
     }
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'GET',
       headers,
     });
@@ -283,7 +284,7 @@ export class BloomreachService {
     await Logger.info('Request payload:');
     await Logger.info(JSON.stringify(updatePayload, null, 2));
     
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'PUT',
       headers,
       body: JSON.stringify(updatePayload),
@@ -317,7 +318,7 @@ export class BloomreachService {
     const blob = new Blob([ndjsonFile], { type: 'application/x-ndjson' });
     formData.append('file', blob, filename);
 
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       method: 'POST',
       headers: {
         'X-AUTH-TOKEN': this.apiKey,
