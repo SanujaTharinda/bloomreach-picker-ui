@@ -1,6 +1,6 @@
 # Brandfolder to Resource Space Migration
 
-This project contains migration scripts to transfer content from Brandfolder to Resource Space, specifically for content that's used in Bloomreach.
+This project contains one-time migration scripts to transfer content from Brandfolder to Resource Space, specifically for content that's used in Bloomreach. These scripts are intended for a single migration run and are not designed for ongoing synchronization.
 
 ## Project Structure
 
