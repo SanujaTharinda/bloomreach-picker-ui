@@ -224,8 +224,8 @@ public class ResourceSpaceClient : IResourceSpaceClient
             return null;
         }
 
-        // Fetch download URL
-        var downloadUrl = await GetResourcePathAsync(assetId, "", cancellationToken);
+        // Fetch download URL - pass the file extension to get correct URL from ResourceSpace
+        var downloadUrl = await GetResourcePathAsync(assetId, "", resourceData.FileExtension, cancellationToken);
 
         var asset = MapToAssetDetail(resourceData, downloadUrl);
 
@@ -262,7 +262,7 @@ public class ResourceSpaceClient : IResourceSpaceClient
 
         try
         {
-            var response = await _httpClient.GetAsync(url, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, cancellationToken);
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
             if (!response.IsSuccessStatusCode)
@@ -297,9 +297,14 @@ public class ResourceSpaceClient : IResourceSpaceClient
     /// <summary>
     /// Gets the URL for a single resource at a specific size.
     /// </summary>
+    /// <param name="resourceId">The resource ID.</param>
+    /// <param name="size">The size identifier (empty for original).</param>
+    /// <param name="extension">The file extension (e.g., "png", "webp"). Required for correct URL.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
     private async Task<string?> GetResourcePathAsync(
         string resourceId,
         string size,
+        string? extension,
         CancellationToken cancellationToken)
     {
         EnsureApiKey();
@@ -310,6 +315,12 @@ public class ResourceSpaceClient : IResourceSpaceClient
             ["getfilepath"] = "false",
             ["size"] = size
         };
+        
+        // Pass the file extension to ResourceSpace to get correct URL
+        if (!string.IsNullOrEmpty(extension))
+        {
+            parameters["extension"] = extension.ToLowerInvariant().TrimStart('.');
+        }
 
         var url = ResourceSpaceSignature.BuildSignedUrl(
             _options.BaseUrl,

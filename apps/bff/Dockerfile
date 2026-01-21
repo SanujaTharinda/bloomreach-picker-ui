@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
@@ -11,7 +11,7 @@ COPY . .
 RUN dotnet publish -c Release -o /app/publish --no-restore
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Create non-root user for security (using useradd for Alpine/RHEL-based images)
@@ -34,6 +34,12 @@ EXPOSE 8080
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
+
+# GC Configuration:
+# - Default: Workstation GC (set in .csproj) - Lower memory, good for BFFs
+# - To enable Server GC for high-throughput: set DOTNET_gcServer=1
+# - Memory conservation level (1-9, higher = more aggressive): DOTNET_GCConserveMemory=5
+# ENV DOTNET_gcServer=1  # Uncomment to enable Server GC
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

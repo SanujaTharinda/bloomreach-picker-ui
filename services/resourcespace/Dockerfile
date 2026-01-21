@@ -69,7 +69,7 @@ RUN rm -f index.html \
 # =============================================================================
 # CUSTOM: Copy our config.php that reads from environment variables
 # =============================================================================
-COPY config/config.php /var/www/html/include/config.php
+# COPY config/config.php /var/www/html/include/config.php
 
 # CUSTOM: Copy custom plugins (if any)
 COPY plugins/ /var/www/html/plugins/
