@@ -52,9 +52,6 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
               <Text strong className={styles.infoFilename}>
                 {asset.title || asset.filename || ''}
               </Text>
-              <Text type="secondary" className={styles.infoDimensions}>
-                {asset.dimensions?.width || asset.width || 0} × {asset.dimensions?.height || asset.height || 0}
-              </Text>
             </div>
           </Card>
         )
