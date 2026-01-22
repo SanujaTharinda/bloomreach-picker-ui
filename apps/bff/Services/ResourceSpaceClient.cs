@@ -160,6 +160,7 @@ public class ResourceSpaceClient : IResourceSpaceClient
     /// <inheritdoc />
     public async Task<PagedResult<AssetThumbnail>> GetCollectionAssetsAsync(
         string collectionId,
+        string? searchQuery,
         int page,
         int pageSize,
         CancellationToken cancellationToken = default)
@@ -167,15 +168,20 @@ public class ResourceSpaceClient : IResourceSpaceClient
         var stopwatch = Stopwatch.StartNew();
         
         _logger.LogInformation(
-            "Fetching collection assets: CollectionId={CollectionId}, Page={Page}, PageSize={PageSize}",
-            collectionId, page, pageSize);
+            "Fetching collection assets: CollectionId={CollectionId}, Query={Query}, Page={Page}, PageSize={PageSize}",
+            collectionId, searchQuery ?? "(none)", page, pageSize);
 
-        // Use search with collection filter
-        var searchQuery = $"!collection{collectionId}";
+        // Build search query: collection filter + optional search term
+        // ResourceSpace syntax: "!collection{id}" for collection filter
+        // When combined with search: "{searchTerm} !collection{id}"
+        var rsSearchQuery = string.IsNullOrWhiteSpace(searchQuery)
+            ? $"!collection{collectionId}"
+            : $"{searchQuery} !collection{collectionId}";
+        
         var offset = (page - 1) * pageSize;
         var parameters = new Dictionary<string, string>
         {
-            ["search"] = searchQuery,
+            ["search"] = rsSearchQuery,
             ["fetchrows"] = $"{offset},{pageSize}", // offset,limit format returns { total, data }
             ["getsizes"] = "thm" // Request thumbnail URLs
         };
@@ -185,7 +191,7 @@ public class ResourceSpaceClient : IResourceSpaceClient
         if (response == null || response.Data.Count == 0)
         {
             _logger.LogInformation(
-                "Collection {CollectionId} has no assets, completed in {ElapsedMs}ms",
+                "Collection {CollectionId} has no assets matching query, completed in {ElapsedMs}ms",
                 collectionId, stopwatch.ElapsedMilliseconds);
 
             return new PagedResult<AssetThumbnail>

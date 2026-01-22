@@ -42,7 +42,8 @@ public interface IResourceSpaceClient
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>Paginated list of assets with thumbnails.</returns>
     Task<PagedResult<AssetThumbnail>> GetCollectionAssetsAsync(
-        string collectionId, 
+        string collectionId,
+        string? searchQuery,
         int page, 
         int pageSize, 
         CancellationToken cancellationToken = default);

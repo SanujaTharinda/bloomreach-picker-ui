@@ -124,12 +124,13 @@ public static class CollectionEndpoints
     }
 
     /// <summary>
-    /// Get paginated assets within a specific collection.
+    /// Get paginated assets within a specific collection, optionally filtered by search query.
     /// </summary>
     private static async Task<IResult> GetCollectionAssets(
         string collectionId,
         [FromQuery] int page,
         [FromQuery] int pageSize,
+        [FromQuery] string? query,
         [FromServices] IResourceSpaceClient client,
         [FromServices] IOptions<ResourceSpaceOptions> options,
         [FromServices] ILogger<Program> logger,
@@ -141,12 +142,12 @@ public static class CollectionEndpoints
         if (pageSize > options.Value.MaxPageSize) pageSize = options.Value.MaxPageSize;
 
         logger.LogInformation(
-            "Collection assets endpoint called: CollectionId={CollectionId}, Page={Page}, PageSize={PageSize}",
-            collectionId, page, pageSize);
+            "Collection assets endpoint called: CollectionId={CollectionId}, Page={Page}, PageSize={PageSize}, Query={Query}",
+            collectionId, page, pageSize, query ?? "(none)");
 
         try
         {
-            var result = await client.GetCollectionAssetsAsync(collectionId, page, pageSize, cancellationToken);
+            var result = await client.GetCollectionAssetsAsync(collectionId, query, page, pageSize, cancellationToken);
             
             logger.LogInformation(
                 "Collection assets endpoint returning {Count} items, TotalCount={TotalCount}",
