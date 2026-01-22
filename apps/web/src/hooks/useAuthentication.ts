@@ -8,7 +8,7 @@ export const useAuthentication = (): UseAuthenticationReturn => {
   const [isAuthenticated, setIsAuthenticated] = useState(true) // Start optimistic
   const [authLoading, setAuthLoading] = useState(true)
   const [authError, setAuthError] = useState<string>('')
-  const [hasVerifiedAuth, setHasVerifiedAuth] = useState(false) // Track if we've verified auth via API call
+  const [, setHasVerifiedAuth] = useState(false) // Track if we've verified auth via API call (value read via functional updates)
   const [apiKeySet, setApiKeySet] = useState(false) // Track if API key has been set in authService
 
   // Function to handle authentication errors from API calls
@@ -25,12 +25,15 @@ export const useAuthentication = (): UseAuthenticationReturn => {
   }, [])
 
   // Function to mark authentication as verified (called after successful API call)
+  // Using functional update to avoid dependency on hasVerifiedAuth, ensuring stable reference
   const markAuthVerified = useCallback(() => {
-    if (!hasVerifiedAuth) {
-      setHasVerifiedAuth(true)
-      setAuthLoading(false)
-    }
-  }, [hasVerifiedAuth])
+    setHasVerifiedAuth((prev) => {
+      if (!prev) {
+        setAuthLoading(false)
+      }
+      return true
+    })
+  }, [])
 
   // Set API key when available
   useEffect(() => {
@@ -53,8 +56,7 @@ export const useAuthentication = (): UseAuthenticationReturn => {
     // Set the API key in the service
     authService.setApiKey(apiKey)
     setApiKeySet(true) // Mark API key as set so dependent hooks can proceed
-    // Keep authLoading as true until we verify via API call
-    // Don't set authLoading to false here - wait for first API call to complete
+    setAuthLoading(false) // Allow rendering - first API call will verify if key is valid
   }, [extensionLoading, getApiKey])
 
 

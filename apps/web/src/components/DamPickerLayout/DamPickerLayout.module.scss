@@ -2,9 +2,10 @@
 @use '../../styles/mixins' as *;
 
 .damPickerLayout {
-  min-height: $min-height-full;
+  height: 100vh; // Fixed viewport height - no page scroll
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .topHeader {
@@ -43,20 +44,17 @@
   flex: 1;
   display: flex;
   overflow: hidden;
+  min-height: 0; // Important for nested flex scroll
 }
 
 .sider {
   background-color: $background-lighter;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
   box-shadow: 2px 0 8px rgba(74, 158, 255, 0.05);
 }
 
 .sidebarHeader {
   padding: $spacing-md $spacing-sm;
   background: linear-gradient(135deg, $white 0%, $primary-lightest 100%);
-  flex-shrink: 0;
 }
 
 .sidebarTitle {
@@ -64,6 +62,13 @@
   font-size: $font-size-md;
   font-weight: $font-weight-semibold;
   color: $text-primary;
+}
+
+.collectionsScrollable {
+  height: calc(100vh - 64px - 60px); // viewport - top header - sidebar header
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: $spacing-md; // Space for last item to be fully visible
 }
 
 .content {
@@ -74,13 +79,12 @@
   min-height: 0; // Important for flex children to be scrollable
 }
 
-.contentScrollable {
+.assetGridScrollable {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
-  display: flex;
-  flex-direction: column;
   min-height: 0; // Important for flex children to be scrollable
+  // No padding here - AssetGrid has its own padding
 }
 
 .contentHeader {
@@ -105,14 +109,15 @@
 }
 
 .breadcrumb {
-  font-size: $font-size-sm;
+  font-size: $font-size-md;
+  font-weight: $font-weight-semibold;
+  
+  :global(.ant-breadcrumb-separator) {
+    color: $text-secondary;
+  }
   
   :global(.ant-breadcrumb-link) {
-    color: $text-secondary;
-    
-    &:hover {
-      color: $primary-color;
-    }
+    color: $text-primary;
   }
 }
 

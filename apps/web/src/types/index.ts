@@ -23,6 +23,7 @@ export type { BloomreachContextValue, DocumentEditorMode } from './bloomreach'
 // Components
 export type {
   AssetGridProps,
+  CollectionPathItem,
   CollectionsTreeProps,
   DamPickerLayoutProps,
   UnauthorizedScreenProps,

@@ -51,7 +51,8 @@ export const useCollections = (): UseCollectionsReturn => {
     }
 
     loadCollections()
-  }, [apiKeySet, handleAuthError, markAuthVerified])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- markAuthVerified is stable and shouldn't trigger re-fetch
+  }, [apiKeySet, handleAuthError])
 
   // Function to load children of a collection (for lazy loading)
   const loadCollectionChildren = useCallback(

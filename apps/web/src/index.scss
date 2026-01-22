@@ -25,13 +25,15 @@ a:hover {
 body {
   margin: 0;
   min-width: 320px;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden; // Prevent page scroll - only asset grid scrolls
   background-color: #f8fbff;
 }
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background-color: #f8fbff;
 }
 
@@ -70,5 +72,35 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
+}
+
+// Custom scrollbar styles - minimal and elegant
+// WebKit browsers (Chrome, Safari, Edge)
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(74, 158, 255, 0.2); // Very subtle primary
+  border-radius: 3px;
+  
+  &:hover {
+    background: rgba(74, 158, 255, 0.4);
+  }
+  
+  &:active {
+    background: rgba(74, 158, 255, 0.6);
+  }
+}
+
+// Firefox
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(74, 158, 255, 0.25) transparent;
 }
 

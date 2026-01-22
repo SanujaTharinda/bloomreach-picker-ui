@@ -6,8 +6,6 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: $spacing-md;
   padding: $spacing-md;
-  overflow-y: auto;
-  max-height: calc(100vh - 200px);
 }
 
 .loading,

@@ -4,8 +4,6 @@
 .collectionsTree {
   background-color: $background-lighter;
   padding: $spacing-sm;
-  flex: 1;
-  overflow-y: auto;
 }
 
 .loading {
@@ -29,37 +27,31 @@
     box-shadow: 0 2px 6px rgba(74, 158, 255, 0.15);
   }
 
+  // Default style for all tree node wrappers
   .ant-tree-node-content-wrapper {
     border-radius: 8px;
     transition: $transition-default;
     padding: 6px 8px;
     border: none !important;
-    cursor: pointer;
-    
-    &:hover {
-      background-color: $primary-lightest !important;
-    }
   }
 
-  // Target non-selectable nodes (parent collections with children)
-  // Ant Design Tree removes tabindex and adds aria-disabled for non-selectable nodes
-  .ant-tree-node-content-wrapper[aria-disabled='true'],
-  .ant-tree-node-content-wrapper:not([tabindex='0']) {
-    cursor: default !important;
-    
-    &:hover {
-      cursor: default !important;
-      background-color: transparent !important;
-    }
-  }
-
-  // Style for non-selectable nodes (parent collections with children)
-  .non-selectable-tree-node {
+  // Selectable nodes (clickable leaf collections) - show pointer and hover effect
+  .ant-tree-treenode:not(.non-selectable-tree-node) {
     .ant-tree-node-content-wrapper {
-      cursor: default !important;
+      cursor: pointer;
       
       &:hover {
-        cursor: default !important;
+        background-color: $primary-lightest !important;
+      }
+    }
+  }
+
+  // Non-selectable nodes (parent collections) - no pointer, no hover effect
+  .non-selectable-tree-node {
+    .ant-tree-node-content-wrapper {
+      cursor: default;
+      
+      &:hover {
         background-color: transparent !important;
       }
     }
@@ -80,6 +72,7 @@
 
   .ant-tree-switcher {
     background: transparent;
+    cursor: pointer; // Expand/collapse arrows should have pointer
   }
 }
 

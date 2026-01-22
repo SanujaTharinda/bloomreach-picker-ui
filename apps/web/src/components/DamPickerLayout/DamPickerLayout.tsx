@@ -1,11 +1,10 @@
 import { Layout, Button, Breadcrumb, Typography } from 'antd'
-import { AppstoreOutlined, HomeOutlined } from '@ant-design/icons'
+import { AppstoreOutlined } from '@ant-design/icons'
 import { CollectionsTree } from '../CollectionsTree'
 import { AssetGrid } from '../AssetGrid'
 import { SearchBar } from '../SearchBar'
 import { PaginationControls } from '../PaginationControls'
 import type { DamPickerLayoutProps } from '../../types'
-import { getCollectionBreadcrumb } from '../../utils/assetUtils'
 import styles from './DamPickerLayout.module.scss'
 import { useMemo } from 'react'
 
@@ -15,6 +14,7 @@ const { Text } = Typography
 export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
   collections,
   selectedCollectionId,
+  selectedCollectionPath,
   assets,
   selectedAssetId,
   collectionsLoading,
@@ -36,56 +36,24 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
     onViewAllChange(true)
   }
 
-  // Build breadcrumb path
+  // Build breadcrumb from full collection path
   const breadcrumbItems = useMemo(() => {
-    if (viewAll || !selectedCollectionId) {
-      return []
+    if (viewAll || selectedCollectionPath.length === 0) {
+      return [] // No breadcrumb when viewing all assets
     }
     
-    const breadcrumb = getCollectionBreadcrumb(collections, selectedCollectionId)
-    if (breadcrumb.length === 0) {
-      return []
-    }
-    
-    return breadcrumb.map((collection, index) => {
-      const isClickable = collection.hasResources
-      const isLast = index === breadcrumb.length - 1
-      
-      const handleClick = (e: React.MouseEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-        if (isClickable && !isLast) {
-          onSelectCollection(collection.id)
-        }
-      }
+    return selectedCollectionPath.map((item, index) => {
+      const isLast = index === selectedCollectionPath.length - 1
       
       return {
-        title: index === 0 ? (
-          <Text 
-            onClick={isClickable && !isLast ? handleClick : undefined}
-            style={{ 
-              cursor: isClickable && !isLast ? 'pointer' : 'default',
-              userSelect: 'none'
-            }}
-            type={isLast ? undefined : 'secondary'}
-          >
-            <HomeOutlined /> {collection.name}
-          </Text>
+        title: isLast ? (
+          <Text style={{ userSelect: 'none' }}>{item.name}</Text>
         ) : (
-          <Text 
-            onClick={isClickable && !isLast ? handleClick : undefined}
-            style={{ 
-              cursor: isClickable && !isLast ? 'pointer' : 'default',
-              userSelect: 'none'
-            }}
-            type={isLast ? undefined : 'secondary'}
-          >
-            {collection.name}
-          </Text>
+          <Text type="secondary" style={{ userSelect: 'none' }}>{item.name}</Text>
         ),
       }
     })
-  }, [collections, selectedCollectionId, viewAll, onSelectCollection])
+  }, [selectedCollectionPath, viewAll])
 
 
   return (
@@ -97,7 +65,7 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
             alt="Brompton Bicycle"
             className={styles.logo}
           />
-          <h1 className={styles.title}>Brompton Resource Space</h1>
+          <h1 className={styles.title}>Brompton DAM</h1>
         </div>
       </Header>
       <Layout className={styles.body}>
@@ -105,28 +73,30 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
           <div className={styles.sidebarHeader}>
             <h3 className={styles.sidebarTitle}>Collections</h3>
           </div>
-          <CollectionsTree
-            collections={collections}
-            selectedCollectionId={selectedCollectionId}
-            onSelectCollection={onSelectCollection}
-            loading={collectionsLoading}
-            loadCollectionChildren={loadCollectionChildren}
-          />
+          <div className={styles.collectionsScrollable}>
+            <CollectionsTree
+              collections={collections}
+              selectedCollectionId={selectedCollectionId}
+              onSelectCollection={onSelectCollection}
+              loading={collectionsLoading}
+              loadCollectionChildren={loadCollectionChildren}
+            />
+          </div>
         </Sider>
         <Content className={styles.content}>
-          <div className={styles.contentScrollable}>
-            <div className={styles.contentHeader}>
+          <div className={styles.contentHeader}>
             <div className={styles.contentHeaderTop}>
               <div className={styles.contentTitleSection}>
-                {breadcrumbItems.length > 0 && (
+                {breadcrumbItems.length > 0 ? (
                   <Breadcrumb
                     items={breadcrumbItems}
                     className={styles.breadcrumb}
                   />
+                ) : (
+                  <h3 className={styles.contentTitle}>
+                    {viewAll ? 'All Assets' : 'Select a collection to view assets'}
+                  </h3>
                 )}
-                <h3 className={styles.contentTitle}>
-                  {viewAll ? 'All Assets' : selectedCollectionId ? 'Assets' : 'Select a collection to view assets'}
-                </h3>
               </div>
               {!viewAll && (
                 <Button
@@ -145,12 +115,14 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
               placeholder={viewAll ? 'Search all assets...' : 'Search assets in collection...'}
             />
           </div>
-          <AssetGrid
-            assets={assets}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={onSelectAsset}
-            loading={assetsLoading}
-          />
+          <div className={styles.assetGridScrollable}>
+            <AssetGrid
+              assets={assets}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={onSelectAsset}
+              loading={assetsLoading}
+            />
+          </div>
           {totalAssets > 0 && (
             <PaginationControls
               currentPage={currentPage}
@@ -161,7 +133,6 @@ export const DamPickerLayout: React.FC<DamPickerLayoutProps> = ({
               loading={assetsLoading}
             />
           )}
-          </div>
         </Content>
       </Layout>
     </Layout>

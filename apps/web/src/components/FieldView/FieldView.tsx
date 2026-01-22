@@ -44,7 +44,7 @@ export const FieldView: React.FC = () => {
       } as const
 
       const dialogOptions = {
-        title: 'Brompton Resource Space Picker',
+        title: 'Brompton DAM',
         url: window.location.href,
         size: dialogSizeMap[dialogSizeConfig],
         value: currentFieldValue || undefined,

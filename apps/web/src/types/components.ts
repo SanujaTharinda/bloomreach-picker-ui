@@ -18,10 +18,15 @@ export interface AssetGridProps {
   onPageChange?: (page: number) => void
 }
 
+export interface CollectionPathItem {
+  id: string
+  name: string
+}
+
 export interface CollectionsTreeProps {
   collections: Collection[]
   selectedCollectionId: string | null
-  onSelectCollection: (collectionId: string | null) => void
+  onSelectCollection: (collectionId: string | null, collectionPath?: CollectionPathItem[]) => void
   loading?: boolean
   loadCollectionChildren?: (collectionId: string) => Promise<Collection[]>
 }
@@ -29,11 +34,12 @@ export interface CollectionsTreeProps {
 export interface DamPickerLayoutProps {
   collections: Collection[]
   selectedCollectionId: string | null
+  selectedCollectionPath: CollectionPathItem[]
   assets: Asset[]
   selectedAssetId: string | null
   collectionsLoading: boolean
   assetsLoading: boolean
-  onSelectCollection: (collectionId: string | null) => void
+  onSelectCollection: (collectionId: string | null, collectionPath?: CollectionPathItem[]) => void
   onSelectAsset: (asset: Asset) => void
   // New features
   searchQuery: string

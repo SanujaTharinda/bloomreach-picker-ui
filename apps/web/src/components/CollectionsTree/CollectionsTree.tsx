@@ -116,27 +116,50 @@ export const CollectionsTree: React.FC<CollectionsTreeProps> = ({
     [loadCollectionChildren, convertCollectionToNode]
   )
 
+  // Find full collection path from tree data
+  const findCollectionPath = useCallback((
+    nodes: DataNode[], 
+    key: string, 
+    currentPath: { id: string; name: string }[] = []
+  ): { id: string; name: string }[] | null => {
+    for (const node of nodes) {
+      const newPath = [...currentPath, { id: node.key as string, name: node.title as string }]
+      
+      if (node.key === key) {
+        return newPath
+      }
+      if (node.children) {
+        const found = findCollectionPath(node.children, key, newPath)
+        if (found) return found
+      }
+    }
+    return null
+  }, [])
+
   const handleSelect = useCallback(
     (selectedKeys: React.Key[]) => {
-      if (selectedKeys.length > 0) {
-        const collectionId = selectedKeys[0] as string
-        
-        // Get collection properties from our map
-        const props = collectionPropsMap.get(collectionId)
-        const hasResources = props?.hasResources ?? false
-        const hasChildren = props?.hasChildren ?? false
-        
-        // Allow selection if:
-        // 1. Collection has resources (existing behavior), OR
-        // 2. Collection is a leaf node with no resources (both hasChildren and hasResources are false)
-        if (hasResources || (!hasChildren && !hasResources)) {
-          onSelectCollection(collectionId)
-        }
-      } else {
-        onSelectCollection(null)
+      // Only handle new selections, ignore unselect (clicking already selected item)
+      // User can use "View All Assets" button to go back to all assets view
+      if (selectedKeys.length === 0) {
+        return // Don't unselect - keep current selection
+      }
+      
+      const collectionId = selectedKeys[0] as string
+      
+      // Get collection properties from our map
+      const props = collectionPropsMap.get(collectionId)
+      const hasResources = props?.hasResources ?? false
+      const hasChildren = props?.hasChildren ?? false
+      
+      // Allow selection if:
+      // 1. Collection has resources (existing behavior), OR
+      // 2. Collection is a leaf node with no resources (both hasChildren and hasResources are false)
+      if (hasResources || (!hasChildren && !hasResources)) {
+        const collectionPath = findCollectionPath(treeData, collectionId) || []
+        onSelectCollection(collectionId, collectionPath)
       }
     },
-    [collectionPropsMap, onSelectCollection]
+    [collectionPropsMap, onSelectCollection, findCollectionPath, treeData]
   )
 
   if (loading) {

@@ -109,24 +109,22 @@ class AssetsService {
 
       let response: { data: ApiAssetsSearchResponse }
 
+      // Build common query params
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString(),
+      })
+      if (searchQuery.trim()) {
+        queryParams.append('query', searchQuery.trim())
+      }
+
       if (viewAll || !collectionId) {
         // Search all assets
-        const queryParams = new URLSearchParams({
-          page: page.toString(),
-          pageSize: pageSize.toString(),
-        })
-        if (searchQuery.trim()) {
-          queryParams.append('query', searchQuery.trim())
-        }
         response = await restApiService.get<ApiAssetsSearchResponse>(
           `/assets/search?${queryParams.toString()}`
         )
       } else {
-        // Get assets for a specific collection
-        const queryParams = new URLSearchParams({
-          page: page.toString(),
-          pageSize: pageSize.toString(),
-        })
+        // Get assets for a specific collection (with optional search)
         response = await restApiService.get<ApiAssetsSearchResponse>(
           `/collections/${collectionId}/assets?${queryParams.toString()}`
         )
