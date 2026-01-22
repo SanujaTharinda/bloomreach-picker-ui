@@ -35,6 +35,24 @@ public class ResourceSpaceClient : IResourceSpaceClient
         _logger = logger;
     }
 
+    /// <summary>
+    /// Maps a ResourceSpacePreviewResource to an AssetThumbnail.
+    /// </summary>
+    private static AssetThumbnail MapToAssetThumbnail(ResourceSpacePreviewResource resource)
+    {
+        return new AssetThumbnail
+        {
+            Id = resource.RefString,
+            Title = resource.Title ?? $"Resource {resource.Ref}",
+            ThumbnailUrl = resource.ThumbnailUrl,
+            Dimensions = resource.ThumbWidth.HasValue && resource.ThumbHeight.HasValue
+                ? $"{resource.ThumbWidth} x {resource.ThumbHeight}"
+                : null,
+            FileExtension = resource.FileExtension,
+            ResourceType = resource.ResourceType?.ToString()
+        };
+    }
+
     /// <inheritdoc />
     public async Task<PagedResult<AssetThumbnail>> SearchAssetsAsync(
         string query,
@@ -52,15 +70,14 @@ public class ResourceSpaceClient : IResourceSpaceClient
         var parameters = new Dictionary<string, string>
         {
             ["search"] = query ?? string.Empty,
-            ["fetchrows"] = pageSize.ToString(),
-            ["offset"] = offset.ToString(),
+            ["fetchrows"] = $"{offset},{pageSize}", // offset,limit format returns { total, data }
+            ["getsizes"] = "thm", // Request thumbnail URLs
             ["order_by"] = "relevance",
             ["sort"] = "desc"
         };
 
-        var resources = await CallApiAsync<List<ResourceSpaceResource>>("do_search", parameters, cancellationToken);
-        
-        if (resources == null || resources.Count == 0)
+        var response = await CallApiAsync<SearchGetPreviewsResponse>("search_get_previews", parameters, cancellationToken);
+        if (response == null || response.Data.Count == 0)
         {
             _logger.LogInformation(
                 "Search completed with no results in {ElapsedMs}ms",
@@ -76,14 +93,13 @@ public class ResourceSpaceClient : IResourceSpaceClient
         }
 
         _logger.LogInformation(
-            "Search returned {Count} resources, now fetching thumbnails via batch API",
-            resources.Count);
+            "Search returned TotalCount={TotalCount}, showing {Count} for page {Page}",
+            response.Total, response.Data.Count, page);
 
-        // Fetch thumbnails using batch API
-        var assets = await EnrichWithThumbnailsAsync(resources, cancellationToken);
+        var assets = response.Data.Select(MapToAssetThumbnail).ToList();
 
         _logger.LogInformation(
-            "Search completed: {Count} assets enriched with thumbnails in {ElapsedMs}ms",
+            "Search completed: {Count} assets in {ElapsedMs}ms (single API call)",
             assets.Count, stopwatch.ElapsedMilliseconds);
 
         return new PagedResult<AssetThumbnail>
@@ -91,7 +107,7 @@ public class ResourceSpaceClient : IResourceSpaceClient
             Items = assets,
             Page = page,
             PageSize = pageSize,
-            TotalCount = resources.Count >= pageSize ? (page * pageSize) + 1 : (page - 1) * pageSize + resources.Count
+            TotalCount = response.Total
         };
     }
 
@@ -157,17 +173,16 @@ public class ResourceSpaceClient : IResourceSpaceClient
         // Use search with collection filter
         var searchQuery = $"!collection{collectionId}";
         var offset = (page - 1) * pageSize;
-        
         var parameters = new Dictionary<string, string>
         {
             ["search"] = searchQuery,
-            ["fetchrows"] = pageSize.ToString(),
-            ["offset"] = offset.ToString()
+            ["fetchrows"] = $"{offset},{pageSize}", // offset,limit format returns { total, data }
+            ["getsizes"] = "thm" // Request thumbnail URLs
         };
 
-        var resources = await CallApiAsync<List<ResourceSpaceResource>>("do_search", parameters, cancellationToken);
+        var response = await CallApiAsync<SearchGetPreviewsResponse>("search_get_previews", parameters, cancellationToken);
 
-        if (resources == null || resources.Count == 0)
+        if (response == null || response.Data.Count == 0)
         {
             _logger.LogInformation(
                 "Collection {CollectionId} has no assets, completed in {ElapsedMs}ms",
@@ -183,13 +198,13 @@ public class ResourceSpaceClient : IResourceSpaceClient
         }
 
         _logger.LogInformation(
-            "Collection has {Count} resources, fetching thumbnails via batch API",
-            resources.Count);
+            "Collection has TotalCount={TotalCount}, showing {Count} for page {Page}",
+            response.Total, response.Data.Count, page);
 
-        var assets = await EnrichWithThumbnailsAsync(resources, cancellationToken);
+        var assets = response.Data.Select(MapToAssetThumbnail).ToList();
 
         _logger.LogInformation(
-            "Collection assets fetched: {Count} assets with thumbnails in {ElapsedMs}ms",
+            "Collection assets fetched: {Count} assets in {ElapsedMs}ms (single API call)",
             assets.Count, stopwatch.ElapsedMilliseconds);
 
         return new PagedResult<AssetThumbnail>
@@ -197,7 +212,7 @@ public class ResourceSpaceClient : IResourceSpaceClient
             Items = assets,
             Page = page,
             PageSize = pageSize,
-            TotalCount = resources.Count >= pageSize ? (page * pageSize) + 1 : (page - 1) * pageSize + resources.Count
+            TotalCount = response.Total
         };
     }
 
@@ -345,166 +360,6 @@ public class ResourceSpaceClient : IResourceSpaceClient
                 resourceId, size);
             return null;
         }
-    }
-
-    /// <summary>
-    /// Gets URLs for multiple resources at a specific size using batch API.
-    /// ResourceSpace supports passing ref as a JSON array like [1,2,3].
-    /// Returns a dictionary mapping resource ID to URL.
-    /// Note: For single ID, ResourceSpace returns a plain string; for multiple IDs, it returns a dictionary.
-    /// </summary>
-    private async Task<Dictionary<int, string>> GetResourcePathsBatchAsync(
-        IEnumerable<int> resourceIds,
-        string size,
-        CancellationToken cancellationToken)
-    {
-        EnsureApiKey();
-        
-        var idList = resourceIds.ToList();
-        if (idList.Count == 0)
-        {
-            return new Dictionary<int, string>();
-        }
-
-        var stopwatch = Stopwatch.StartNew();
-        
-        // Format IDs as JSON array: [1,2,3]
-        var refArray = ResourceSpaceSignature.FormatIdsAsJsonArray(idList);
-        
-        var parameters = new Dictionary<string, string>
-        {
-            ["ref"] = refArray,
-            ["getfilepath"] = "false",
-            ["size"] = size
-        };
-
-        // Use raw URL builder since ResourceSpace expects literal brackets
-        var url = ResourceSpaceSignature.BuildSignedUrlRaw(
-            _options.BaseUrl,
-            _options.DefaultUser,
-            _apiKeyContext.ApiKey!,
-            "get_resource_path",
-            parameters);
-
-        _logger.LogDebug(
-            "Batch get_resource_path: Fetching {Count} resource URLs, Size={Size}",
-            idList.Count, size);
-
-        try
-        {
-            var response = await _httpClient.GetStringAsync(url, cancellationToken);
-            
-            _logger.LogDebug(
-                "Batch get_resource_path completed: ResponseLength={Length}, ElapsedMs={ElapsedMs}",
-                response.Length, stopwatch.ElapsedMilliseconds);
-
-            var result = new Dictionary<int, string>();
-            
-            if (string.IsNullOrWhiteSpace(response) || response == "false")
-            {
-                return result;
-            }
-
-            // Handle two response formats:
-            // - Single ID: returns a plain string (the URL, possibly quoted)
-            // - Multiple IDs: returns a dictionary { "1": "url1", "2": "url2" }
-            var trimmedResponse = response.Trim();
-            
-            if (trimmedResponse.StartsWith('{'))
-            {
-                // Multiple IDs - parse as dictionary
-                var urlMap = JsonSerializer.Deserialize<Dictionary<string, string>>(response, JsonOptions);
-                
-                if (urlMap != null)
-                {
-                    foreach (var (key, value) in urlMap)
-                    {
-                        if (int.TryParse(key, out var id) && !string.IsNullOrEmpty(value) && value != "false")
-                        {
-                            result[id] = value;
-                        }
-                    }
-                }
-            }
-            else if (idList.Count == 1)
-            {
-                // Single ID - response is just the URL string (possibly quoted)
-                var cleanUrl = trimmedResponse.Trim('"');
-                if (!string.IsNullOrEmpty(cleanUrl) && cleanUrl != "false")
-                {
-                    result[idList[0]] = cleanUrl;
-                }
-            }
-
-            _logger.LogDebug(
-                "Batch get_resource_path parsed: {SuccessCount}/{TotalCount} URLs found",
-                result.Count, idList.Count);
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex,
-                "Batch get_resource_path failed for {Count} resources, Size={Size}",
-                idList.Count, size);
-            return new Dictionary<int, string>();
-        }
-    }
-
-    /// <summary>
-    /// Enriches resources with thumbnail URLs using batch API call.
-    /// Uses single batch request instead of multiple parallel calls for better performance.
-    /// </summary>
-    private async Task<List<AssetThumbnail>> EnrichWithThumbnailsAsync(
-        List<ResourceSpaceResource> resources,
-        CancellationToken cancellationToken)
-    {
-        var stopwatch = Stopwatch.StartNew();
-
-        _logger.LogDebug(
-            "Starting batch thumbnail fetch for {Count} resources",
-            resources.Count);
-
-        // Extract all resource IDs for batch call
-        var resourceIds = resources
-            .Select(r => r.Ref)
-            .ToList();
-
-        // Single batch call to get all thumbnail URLs
-        var thumbnailUrls = await GetResourcePathsBatchAsync(resourceIds, "thm", cancellationToken);
-
-        // Map resources to AssetThumbnails with their URLs
-        var results = resources.Select(resource =>
-        {
-            thumbnailUrls.TryGetValue(resource.Ref, out var thumbnailUrl);
-            return MapToAssetThumbnail(resource, thumbnailUrl);
-        }).ToList();
-
-        _logger.LogDebug(
-            "Batch thumbnail fetch completed: {Count} thumbnails in {ElapsedMs}ms (single API call)",
-            results.Count, stopwatch.ElapsedMilliseconds);
-
-        return results;
-    }
-
-    /// <summary>
-    /// Maps ResourceSpace resource to AssetThumbnail.
-    /// </summary>
-    private static AssetThumbnail MapToAssetThumbnail(ResourceSpaceResource resource, string? thumbnailUrl)
-    {
-        var dimensions = resource.ThumbWidth.HasValue && resource.ThumbHeight.HasValue
-            ? $"{resource.ThumbWidth} x {resource.ThumbHeight}"
-            : null;
-
-        return new AssetThumbnail
-        {
-            Id = resource.RefString,
-            Title = resource.Title ?? $"Resource {resource.Ref}",
-            ThumbnailUrl = thumbnailUrl,
-            Dimensions = dimensions,
-            FileExtension = resource.FileExtension,
-            ResourceType = resource.ResourceType?.ToString()
-        };
     }
 
     /// <summary>
