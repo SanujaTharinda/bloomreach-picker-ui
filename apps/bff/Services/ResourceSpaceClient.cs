@@ -173,10 +173,10 @@ public class ResourceSpaceClient : IResourceSpaceClient
 
         // Build search query: collection filter + optional search term
         // ResourceSpace syntax: "!collection{id}" for collection filter
-        // When combined with search: "{searchTerm} !collection{id}"
+        // Collection filter must come FIRST, then search term
         var rsSearchQuery = string.IsNullOrWhiteSpace(searchQuery)
             ? $"!collection{collectionId}"
-            : $"{searchQuery} !collection{collectionId}";
+            : $"!collection{collectionId} {searchQuery}";
         
         var offset = (page - 1) * pageSize;
         var parameters = new Dictionary<string, string>
@@ -375,54 +375,16 @@ public class ResourceSpaceClient : IResourceSpaceClient
         ResourceSpaceResourceData resourceData,
         string? downloadUrl)
     {
-        int? width = resourceData.Width ?? resourceData.ThumbWidth;
-        int? height = resourceData.Height ?? resourceData.ThumbHeight;
-
         return new AssetDetail
         {
             Id = resourceData.RefString,
             Title = resourceData.Title ?? $"Resource {resourceData.Ref}",
+            Description = resourceData.Description,
             Url = downloadUrl,
             FileExtension = resourceData.FileExtension,
-            MimeType = GetMimeType(resourceData.FileExtension),
-            Dimensions = width.HasValue && height.HasValue 
-                ? new AssetDimensions { Width = width.Value, Height = height.Value }
-                : null,
-            FileSize = resourceData.FileSize
-        };
-    }
-
-    /// <summary>
-    /// Gets MIME type from file extension.
-    /// </summary>
-    private static string? GetMimeType(string? extension)
-    {
-        if (string.IsNullOrEmpty(extension))
-            return null;
-
-        return extension.ToLowerInvariant() switch
-        {
-            "jpg" or "jpeg" => "image/jpeg",
-            "png" => "image/png",
-            "gif" => "image/gif",
-            "webp" => "image/webp",
-            "svg" => "image/svg+xml",
-            "bmp" => "image/bmp",
-            "tiff" or "tif" => "image/tiff",
-            "pdf" => "application/pdf",
-            "doc" => "application/msword",
-            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "xls" => "application/vnd.ms-excel",
-            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "ppt" => "application/vnd.ms-powerpoint",
-            "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            "mp4" => "video/mp4",
-            "mov" => "video/quicktime",
-            "avi" => "video/x-msvideo",
-            "mp3" => "audio/mpeg",
-            "wav" => "audio/wav",
-            "zip" => "application/zip",
-            _ => $"application/{extension}"
+            FileSize = resourceData.FileSize,
+            CreatedAt = resourceData.CreationDate,
+            ModifiedAt = resourceData.Modified
         };
     }
 

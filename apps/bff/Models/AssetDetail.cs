@@ -21,6 +21,12 @@ public class AssetDetail
     public string Title { get; set; } = string.Empty;
 
     /// <summary>
+    /// Asset description.
+    /// </summary>
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    /// <summary>
     /// URL to the original/full resolution file for embedding.
     /// </summary>
     [JsonPropertyName("url")]
@@ -33,33 +39,21 @@ public class AssetDetail
     public string? FileExtension { get; set; }
 
     /// <summary>
-    /// MIME type (e.g., "image/jpeg").
-    /// </summary>
-    [JsonPropertyName("mimeType")]
-    public string? MimeType { get; set; }
-
-    /// <summary>
-    /// Image dimensions (if available).
-    /// </summary>
-    [JsonPropertyName("dimensions")]
-    public AssetDimensions? Dimensions { get; set; }
-
-    /// <summary>
     /// File size in bytes (if available).
     /// </summary>
     [JsonPropertyName("fileSize")]
     public long? FileSize { get; set; }
-}
 
-/// <summary>
-/// Represents image dimensions.
-/// </summary>
-public class AssetDimensions
-{
-    [JsonPropertyName("width")]
-    public int Width { get; set; }
+    /// <summary>
+    /// Creation date of the asset.
+    /// </summary>
+    [JsonPropertyName("createdAt")]
+    public string? CreatedAt { get; set; }
 
-    [JsonPropertyName("height")]
-    public int Height { get; set; }
+    /// <summary>
+    /// Last modified date of the asset.
+    /// </summary>
+    [JsonPropertyName("modifiedAt")]
+    public string? ModifiedAt { get; set; }
 }
 
