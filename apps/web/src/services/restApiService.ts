@@ -61,11 +61,12 @@ class RestApiService {
   /**
    * Make a GET request
    */
-  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+  async get<T>(endpoint: string, signal?: AbortSignal): Promise<ApiResponse<T>> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'GET',
         headers: this.getHeaders(),
+        signal,
       })
 
       if (!response.ok) {
@@ -103,6 +104,10 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
+      // Preserve AbortError for cancellation handling
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        throw error
+      }
       if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
         throw error
       }

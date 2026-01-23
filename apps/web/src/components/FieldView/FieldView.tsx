@@ -35,8 +35,10 @@ export const FieldView = () => {
 
       if (selectedValue) {
         const parsed = parseAssetFromValue(selectedValue)
-        await ui.document.field.setValue(selectedValue)
-        setSelectedAsset(parsed)
+        if (parsed) {
+          await ui.document.field.setValue(selectedValue)
+          setSelectedAsset(parsed)
+        }
       }
     } catch (err: any) {
       if (err.code !== 'DialogCanceled')

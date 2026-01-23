@@ -16,6 +16,7 @@ class AssetsService {
     pageSize?: number
     searchQuery?: string
     viewAll?: boolean
+    signal?: AbortSignal
   }): Promise<{ assets: Asset[]; total: number; page: number; pageSize: number }> {
     const {
       collectionId = null,
@@ -23,6 +24,7 @@ class AssetsService {
       pageSize = 20,
       searchQuery = '',
       viewAll = false,
+      signal,
     } = params
 
     try {
@@ -40,12 +42,14 @@ class AssetsService {
       if (viewAll || !collectionId) {
         // Search all assets
         response = await restApiService.get<ApiAssetsSearchResponse>(
-          `/assets/search?${queryParams.toString()}`
+          `/assets/search?${queryParams.toString()}`,
+          signal
         )
       } else {
         // Get assets for a specific collection (with optional search)
         response = await restApiService.get<ApiAssetsSearchResponse>(
-          `/collections/${collectionId}/assets?${queryParams.toString()}`
+          `/collections/${collectionId}/assets?${queryParams.toString()}`,
+          signal
         )
       }
 

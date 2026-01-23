@@ -85,6 +85,8 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
+    const abortController = new AbortController()
+
     const load = async () => {
       try {
         setAssetsLoading(true)
@@ -95,19 +97,24 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
           pageSize: PAGE_SIZE,
           searchQuery: search,
           viewAll,
+          signal: abortController.signal,
         })
         setAssets(result.assets)
         setTotal(result.total)
       } catch (err: any) {
+        // Ignore abort errors - these are expected when deps change
+        if (err?.name === 'AbortError') return
         if (err?.status === 401 || err?.status === 403) handleAuthError?.(err)
         else setError(`Failed to load assets: ${err.message}`)
         setAssets([])
         setTotal(0)
       } finally {
-        setAssetsLoading(false)
+        if (!abortController.signal.aborted) setAssetsLoading(false)
       }
     }
     load()
+
+    return () => abortController.abort()
   }, [selectedCollectionId, apiKeySet, page, search, viewAll, handleAuthError])
 
   // Reset page when collection or search changes
