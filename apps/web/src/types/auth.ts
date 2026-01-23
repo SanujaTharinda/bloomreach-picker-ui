@@ -8,7 +8,7 @@ export interface AuthResult {
 export interface ExtensionConfig {
   apiKey?: string
   dialogSize?: DialogSize
-  [key: string]: any
+  [key: string]: string | DialogSize | undefined
 }
 
 export interface AuthContextValue {
@@ -16,5 +16,5 @@ export interface AuthContextValue {
   authLoading: boolean
   authError: string
   apiKeySet: boolean
-  handleAuthError?: (error: any) => void
+  handleAuthError?: (error: { status?: number; code?: string; message?: string }) => void
 }

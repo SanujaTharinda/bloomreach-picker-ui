@@ -121,6 +121,7 @@ export const DamPickerLayout = () => {
               )}
             </div>
             <SearchBar
+              key={selectedCollectionId ?? 'all'}
               value={search}
               onSearch={setSearch}
               loading={assetsLoading}

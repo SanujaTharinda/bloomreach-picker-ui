@@ -265,17 +265,9 @@ const mockAssetDetails: Record<string, ApiAssetDetails> = {
     id: 'asset-3-1',
     title: 'Brompton Bike Hero Shot.jpg',
     description: 'Professional product photography of Brompton folding bike',
-    url: 'https://via.placeholder.com/1920x1080?text=Bike+Hero+Full', // BFF returns 'url', not 'fullUrl'
-    thumbnailUrl: 'https://via.placeholder.com/300x200?text=Bike+Hero',
-    previewUrl: 'https://via.placeholder.com/800x600?text=Bike+Hero+Preview',
-    dimensions: { width: 1920, height: 1080 },
+    url: 'https://via.placeholder.com/1920x1080?text=Bike+Hero+Full', 
     fileSize: 2456789,
     fileExtension: 'jpg',
-    mimeType: 'image/jpeg',
-    metadata: {
-      keywords: 'bike, brompton, folding, product',
-      photographer: 'John Doe',
-    },
     createdAt: '2024-01-15T10:30:00Z',
     modifiedAt: '2024-01-15T10:30:00Z',
   },
@@ -308,16 +300,12 @@ export const getMockCollectionAssets = (
   const endIndex = startIndex + pageSize
   const items = allAssets.slice(startIndex, endIndex)
   const totalCount = allAssets.length
-  const totalPages = Math.ceil(totalCount / pageSize)
 
   return {
     items,
     page,
     pageSize,
-    totalCount,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
+    totalCount
   }
 }
 
@@ -339,16 +327,12 @@ export const getMockSearchAssets = (
   const endIndex = startIndex + pageSize
   const items = filtered.slice(startIndex, endIndex)
   const totalCount = filtered.length
-  const totalPages = Math.ceil(totalCount / pageSize)
 
   return {
     items,
     page,
     pageSize,
-    totalCount,
-    totalPages,
-    hasNextPage: page < totalPages,
-    hasPreviousPage: page > 1,
+    totalCount
   }
 }
 

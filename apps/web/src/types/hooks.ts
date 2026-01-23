@@ -7,7 +7,7 @@ export interface UseAuthenticationReturn {
   authLoading: boolean
   authError: string
   apiKeySet: boolean
-  handleAuthError?: (error: any) => void
+  handleAuthError?: (error: { status?: number; code?: string; message?: string }) => void
 }
 
 export interface UseBloomreachExtensionReturn {

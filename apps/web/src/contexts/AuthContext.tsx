@@ -3,6 +3,7 @@ import type { AuthContextValue, AuthProviderProps } from '../types'
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuthContext = () => {
   const context = useContext(AuthContext)
   if (context === undefined) {

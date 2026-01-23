@@ -1,9 +1,21 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Tree, Spin, message } from 'antd'
 import { FolderOutlined, FolderOpenOutlined } from '@ant-design/icons'
 import type { DataNode } from 'antd/es/tree'
 import type { Collection, CollectionsTreeProps } from '../../types'
 import styles from './CollectionsTree.module.scss'
+
+const toNode = (c: Collection): DataNode => {
+  const isSelectable = c.hasResources || (!c.hasChildren && !c.hasResources)
+  return {
+    title: c.name,
+    key: c.id,
+    icon: c.hasChildren ? <FolderOutlined /> : <FolderOpenOutlined />,
+    isLeaf: !c.hasChildren,
+    selectable: true,
+    className: !isSelectable ? 'non-selectable-tree-node' : undefined,
+  }
+}
 
 export const CollectionsTree = ({
   collections,
@@ -12,22 +24,14 @@ export const CollectionsTree = ({
   onSelectCollection,
   loadCollectionChildren,
 }: CollectionsTreeProps) => {
-  const [treeData, setTreeData] = useState<DataNode[]>([])
-  const [collectionProps, setCollectionProps] = useState<Map<string, { hasResources: boolean; hasChildren: boolean }>>(new Map())
+  const [treeData, setTreeData] = useState<DataNode[]>(() => collections.map(toNode))
+  const [collectionProps, setCollectionProps] = useState<Map<string, { hasResources: boolean; hasChildren: boolean }>>(
+    () => new Map(collections.map(c => [c.id, { hasResources: c.hasResources, hasChildren: c.hasChildren }]))
+  )
+  const [prevCollections, setPrevCollections] = useState(collections)
 
-  const toNode = useCallback((c: Collection): DataNode => {
-    const isSelectable = c.hasResources || (!c.hasChildren && !c.hasResources)
-    return {
-      title: c.name,
-      key: c.id,
-      icon: c.hasChildren ? <FolderOutlined /> : <FolderOpenOutlined />,
-      isLeaf: !c.hasChildren,
-      selectable: true,
-      className: !isSelectable ? 'non-selectable-tree-node' : undefined,
-    }
-  }, [])
-
-  useEffect(() => {
+  if (collections !== prevCollections) {
+    setPrevCollections(collections)
     if (collections.length > 0) {
       setTreeData(collections.map(toNode))
       setCollectionProps(new Map(collections.map(c => [c.id, { hasResources: c.hasResources, hasChildren: c.hasChildren }])))
@@ -35,7 +39,7 @@ export const CollectionsTree = ({
       setTreeData([])
       setCollectionProps(new Map())
     }
-  }, [collections, toNode])
+  }
 
   const handleLoadData = useCallback(async (node: DataNode) => {
     if (node.isLeaf || node.children?.length || !loadCollectionChildren) return
@@ -74,7 +78,7 @@ export const CollectionsTree = ({
         return update(prev)
       })
     }
-  }, [loadCollectionChildren, toNode])
+  }, [loadCollectionChildren])
 
   const handleSelect = useCallback((keys: React.Key[]) => {
     if (keys.length === 0) return

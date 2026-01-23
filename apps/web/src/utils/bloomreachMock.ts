@@ -66,8 +66,8 @@ export const createMockUiScope = (config?: {
   // Store field value in memory for mock
   let fieldValue = mockConfig.fieldValue
   
-  let dialogResolver: ((value: any) => void) | null = null
-  let dialogRejector: ((error: any) => void) | null = null
+  let dialogResolver: ((value: unknown) => void) | null = null
+  let dialogRejector: ((error: unknown) => void) | null = null
 
   const mockScope: MockUiScope = {
     baseUrl: window.location.origin,
@@ -155,7 +155,7 @@ export const createMockUiScope = (config?: {
         }
         throw new Error('Not in dialog mode')
       },
-      open: async (options: any) => {
+      open: async (options: { url?: string; title?: string; size?: string; value?: string }) => {
         console.log('[Mock] Dialog opened with options:', options)
         
         // In local development, open the dialog URL in a new window
@@ -232,12 +232,12 @@ export const createMockUiScope = (config?: {
         
         window.addEventListener('message', messageHandler)
         
-        return new Promise((resolve, reject) => {
+        return new Promise<unknown>((resolve, reject) => {
           dialogResolver = resolve
           dialogRejector = reject
-        })
+        }) as Promise<void>
       },
-      close: async (value: any) => {
+      close: async (value: unknown) => {
         console.log('[Mock] Dialog closed with value:', value)
         if (mockConfig.isDialogMode && window.opener) {
           window.opener.postMessage({

@@ -40,9 +40,10 @@ export const FieldView = () => {
           setSelectedAsset(parsed)
         }
       }
-    } catch (err: any) {
-      if (err.code !== 'DialogCanceled')
-        console.error('Error opening dialog:', err.code, err.message)
+    } catch (err) {
+      const e = err as { code?: string; message?: string }
+      if (e.code !== 'DialogCanceled')
+        console.error('Error opening dialog:', e.code, e.message)
     }
   }
 
@@ -52,8 +53,9 @@ export const FieldView = () => {
     try {
       await ui.document.field.setValue('')
       setSelectedAsset(null)
-    } catch (err: any) {
-      console.error('Error clearing field value:', err.code, err.message)
+    } catch (err) {
+      const e = err as { code?: string; message?: string }
+      console.error('Error clearing field value:', e.code, e.message)
     }
   }
 

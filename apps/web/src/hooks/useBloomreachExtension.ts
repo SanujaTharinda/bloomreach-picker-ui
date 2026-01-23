@@ -91,9 +91,10 @@ export const useBloomreachExtension = (): UseBloomreachExtensionReturn => {
 
           await extension.document.field.setHeight(600)
         }
-      } catch (err: any) {
-        console.error('Failed to register extension:', err.message)
-        setError(`Failed to initialize: ${err.message}`)
+      } catch (err) {
+        const error = err as { message?: string }
+        console.error('Failed to register extension:', error.message)
+        setError(`Failed to initialize: ${error.message}`)
       } finally {
         setIsLoading(false)
       }

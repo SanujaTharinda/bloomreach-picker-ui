@@ -1,6 +1,6 @@
 import { Input, Button } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import type { SearchBarProps } from '../../types/components'
 import styles from './SearchBar.module.scss'
 
@@ -11,8 +11,6 @@ export const SearchBar = ({
   loading = false,
 }: SearchBarProps) => {
   const [searchValue, setSearchValue] = useState(value)
-
-  useEffect(() => setSearchValue(value), [value])
 
   const handleSearch = () => onSearch(searchValue)
 

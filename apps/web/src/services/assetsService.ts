@@ -28,10 +28,6 @@ class AssetsService {
     } = params
 
     try {
-      let apiResponse: ApiAssetsSearchResponse
-
-      let response: { data: ApiAssetsSearchResponse }
-
       // Build common query params
       const queryParams = new URLSearchParams({
         page: page.toString(),
@@ -39,21 +35,17 @@ class AssetsService {
       })
       if (searchQuery.trim()) queryParams.append('query', searchQuery.trim())
 
-      if (viewAll || !collectionId) {
-        // Search all assets
-        response = await restApiService.get<ApiAssetsSearchResponse>(
-          `/assets/search?${queryParams.toString()}`,
-          signal
-        )
-      } else {
-        // Get assets for a specific collection (with optional search)
-        response = await restApiService.get<ApiAssetsSearchResponse>(
-          `/collections/${collectionId}/assets?${queryParams.toString()}`,
-          signal
-        )
-      }
+      const response = viewAll || !collectionId
+        ? await restApiService.get<ApiAssetsSearchResponse>(
+            `/assets/search?${queryParams.toString()}`,
+            signal
+          )
+        : await restApiService.get<ApiAssetsSearchResponse>(
+            `/collections/${collectionId}/assets?${queryParams.toString()}`,
+            signal
+          )
 
-      apiResponse = response.data
+      const apiResponse = response.data
       const assets = apiResponse.items.map((apiAsset) => this.mapApiAssetToAsset(apiAsset))
 
       return {
@@ -62,10 +54,11 @@ class AssetsService {
         page: apiResponse.page,
         pageSize: apiResponse.pageSize,
       }
-    } catch (error: any) {
-      if (error?.name === 'AbortError') throw error
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') throw error
       console.error('Failed to fetch assets:', error)
-      throw new Error(`Failed to fetch assets: ${error.message || 'Unknown error'}`)
+      if (error && typeof error === 'object' && 'status' in error) throw error
+      throw new Error(`Failed to fetch assets: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -76,10 +69,13 @@ class AssetsService {
     try {
       const response = await restApiService.get<ApiAssetDetails>(`/assets/${assetId}`)
       return this.mapApiAssetDetailsToAssetDetail(response.data)
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Failed to fetch asset ${assetId}:`, error)
-      if (error.status === 404) return null
-      throw new Error(`Failed to fetch asset: ${error.message || 'Unknown error'}`)
+      if (error && typeof error === 'object' && 'status' in error) {
+        if (error.status === 404) return null
+        throw error
+      }
+      throw new Error(`Failed to fetch asset: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 

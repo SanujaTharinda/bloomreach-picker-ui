@@ -92,10 +92,7 @@ class RestApiService {
           if (errorText) errorMessage = errorText
         }
 
-        throw {
-          message: errorMessage,
-          status: response.status,
-        } as ApiError
+        throw { message: errorMessage, status: response.status } as ApiError
       }
 
       const data = await response.json()
@@ -104,23 +101,16 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw error
-      }
-      if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
-        throw error
-      }
-      throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 500,
-      } as ApiError
+      if (error instanceof Error && error.name === 'AbortError') throw error
+      if (error && typeof error === 'object' && 'status' in error && 'message' in error) throw error
+      throw { message: error instanceof Error ? error.message : 'Unknown error occurred', status: 500 } as ApiError
     }
   }
 
   /**
    * Make a POST request
    */
-  async post<T>(endpoint: string, body?: any): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body?: unknown): Promise<ApiResponse<T>> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method: 'POST',
@@ -151,10 +141,7 @@ class RestApiService {
           if (errorText) errorMessage = errorText
         }
 
-        throw {
-          message: errorMessage,
-          status: response.status,
-        } as ApiError
+        throw { message: errorMessage, status: response.status } as ApiError
       }
 
       const data = await response.json()
@@ -163,13 +150,8 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
-      if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
-        throw error
-      }
-      throw {
-        message: error instanceof Error ? error.message : 'Unknown error occurred',
-        status: 500,
-      } as ApiError
+      if (error && typeof error === 'object' && 'status' in error && 'message' in error) throw error
+      throw { message: error instanceof Error ? error.message : 'Unknown error occurred', status: 500 } as ApiError
     }
   }
 }

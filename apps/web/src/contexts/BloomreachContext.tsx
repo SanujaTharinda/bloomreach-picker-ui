@@ -3,6 +3,7 @@ import type { BloomreachContextValue, BloomreachProviderProps } from '../types'
 
 const BloomreachContext = createContext<BloomreachContextValue | undefined>(undefined)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useBloomreachContext = () => {
   const context = useContext(BloomreachContext)
   if (context === undefined) {

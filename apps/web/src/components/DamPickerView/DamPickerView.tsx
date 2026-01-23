@@ -1,6 +1,6 @@
 import { Spin } from 'antd'
 import { useAuthentication } from '../../hooks/useAuthentication'
-import { AuthProvider } from '../../contexts/AuthContext'
+import { AuthProvider, useAuthContext } from '../../contexts/AuthContext'
 import { DamPickerProvider, useDamPickerContext } from '../../contexts/DamPickerContext'
 import { UnauthorizedScreen } from '../UnauthorizedScreen'
 import { DamPickerLayout } from '../DamPickerLayout'
@@ -8,7 +8,10 @@ import { LocalDevBanner } from '../LocalDevBanner'
 import { isLocalDevelopment } from '../../utils/bloomreachMock'
 
 const DamPickerContent = () => {
+  const { isAuthenticated, authError } = useAuthContext()
   const { error } = useDamPickerContext()
+
+  if (!isAuthenticated) return <UnauthorizedScreen message={authError} />
 
   if (error) {
     return (

@@ -14,6 +14,7 @@ const PAGE_SIZE = 30
 
 const DamPickerContext = createContext<DamPickerContextValue | undefined>(undefined)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDamPickerContext = () => {
   const context = useContext(DamPickerContext)
   if (!context) throw new Error('useDamPickerContext must be used within DamPickerProvider')
@@ -66,9 +67,10 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
         setCollectionsLoading(true)
         const data = await collectionsService.getRootCollections()
         setCollections(data)
-      } catch (err: any) {
-        if (err?.status === 401 || err?.status === 403) handleAuthError?.(err)
-        else setError(`Failed to load collections: ${err.message}`)
+      } catch (err) {
+        const e = err as { status?: number; message?: string }
+        if (e?.status === 401 || e?.status === 403) handleAuthError?.(e)
+        else setError(`Failed to load collections: ${e?.message || 'Unknown error'}`)
       } finally {
         setCollectionsLoading(false)
       }
@@ -101,11 +103,12 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
         })
         setAssets(result.assets)
         setTotal(result.total)
-      } catch (err: any) {
+      } catch (err) {
         // Ignore abort errors - these are expected when deps change
-        if (err?.name === 'AbortError') return
-        if (err?.status === 401 || err?.status === 403) handleAuthError?.(err)
-        else setError(`Failed to load assets: ${err.message}`)
+        if (err instanceof Error && err.name === 'AbortError') return
+        const e = err as { status?: number; message?: string }
+        if (e?.status === 401 || e?.status === 403) handleAuthError?.(e)
+        else setError(`Failed to load assets: ${e?.message || 'Unknown error'}`)
         setAssets([])
         setTotal(0)
       } finally {
@@ -158,9 +161,10 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
         }
         await ui.document.field.setValue(serialized)
       }
-    } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403) {
-        handleAuthError?.(err)
+    } catch (err) {
+      const e = err as { status?: number }
+      if (e?.status === 401 || e?.status === 403) {
+        handleAuthError?.(e)
       } else {
         message.error('Unable to select asset. Please try again.')
       }
@@ -174,8 +178,9 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
       const nodeChildren = await collectionsService.getCollectionChildren(id)
       setChildrenMap(prev => new Map(prev).set(id, nodeChildren))
       return nodeChildren
-    } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403) handleAuthError?.(err)
+    } catch (err) {
+      const e = err as { status?: number }
+      if (e?.status === 401 || e?.status === 403) handleAuthError?.(e)
       throw err
     }
   }, [handleAuthError])

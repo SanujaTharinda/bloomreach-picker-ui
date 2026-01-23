@@ -14,9 +14,10 @@ class CollectionsService {
     try {
       const response = await restApiService.get<ApiCollection[]>('/collections')
       return response.data.map(this.mapApiCollectionToCollection)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch root collections:', error)
-      throw new Error(`Failed to fetch root collections: ${error.message || 'Unknown error'}`)
+      if (error && typeof error === 'object' && 'status' in error) throw error
+      throw new Error(`Failed to fetch root collections: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -27,9 +28,10 @@ class CollectionsService {
     try {
       const response = await restApiService.get<ApiCollection[]>(`/collections/${collectionId}/children`)
       return response.data.map(this.mapApiCollectionToCollection)
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Failed to fetch children for collection ${collectionId}:`, error)
-      throw new Error(`Failed to fetch collection children: ${error.message || 'Unknown error'}`)
+      if (error && typeof error === 'object' && 'status' in error) throw error
+      throw new Error(`Failed to fetch collection children: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
