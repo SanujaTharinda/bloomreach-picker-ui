@@ -17,6 +17,7 @@ export interface DamPickerContextValue {
   totalPages: number
   collectionsLoading: boolean
   assetsLoading: boolean
+  selectingAsset: boolean
   error: string | null
   selectCollection: (id: string | null) => void
   selectAsset: (asset: Asset) => Promise<void>

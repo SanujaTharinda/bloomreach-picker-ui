@@ -162,3 +162,18 @@
   color: $text-primary;
 }
 
+.spinWrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  // Ant Design Spin creates nested structure - style the inner container too
+  :global(.ant-spin-container) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+}
+

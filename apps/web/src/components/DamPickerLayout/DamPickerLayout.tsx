@@ -1,4 +1,4 @@
-import { Layout, Button, Breadcrumb, Typography } from 'antd'
+import { Layout, Button, Breadcrumb, Typography, Spin } from 'antd'
 import { AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
 import { useMemo, useState } from 'react'
 import { useDamPickerContext } from '../../contexts/DamPickerContext'
@@ -24,6 +24,7 @@ export const DamPickerLayout = () => {
     search,
     collectionsLoading,
     assetsLoading,
+    selectingAsset,
     totalPages,
     viewAll,
     selectCollection,
@@ -126,24 +127,27 @@ export const DamPickerLayout = () => {
               placeholder={viewAll ? 'Search all assets...' : 'Search assets in collection...'}
             />
           </div>
-          <div className={styles.assetGridScrollable}>
-            <AssetGrid
-              assets={assets}
-              selectedAssetId={selectedAssetId}
-              onSelectAsset={selectAsset}
-              loading={assetsLoading}
-            />
-          </div>
-          {total > 0 && (
-            <PaginationControls
-              currentPage={page}
-              totalPages={totalPages}
-              totalAssets={total}
-              pageSize={PAGE_SIZE}
-              onPageChange={setPage}
-              loading={assetsLoading}
-            />
-          )}
+          <Spin spinning={selectingAsset} wrapperClassName={styles.spinWrapper}>
+            <div className={styles.assetGridScrollable}>
+                <AssetGrid
+                  assets={assets}
+                  selectedAssetId={selectedAssetId}
+                  onSelectAsset={selectAsset}
+                  loading={assetsLoading}
+                />
+              
+            </div>
+            {total > 0 && (
+              <PaginationControls
+                currentPage={page}
+                totalPages={totalPages}
+                totalAssets={total}
+                pageSize={PAGE_SIZE}
+                onPageChange={setPage}
+                loading={assetsLoading}
+              />
+            )}
+          </Spin>
         </Content>
       </Layout>
     </Layout>

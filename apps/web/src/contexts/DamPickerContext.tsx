@@ -33,6 +33,7 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
   const [search, setSearch] = useState('')
   const [collectionsLoading, setCollectionsLoading] = useState(true)
   const [assetsLoading, setAssetsLoading] = useState(true)
+  const [selectingAsset, setSelectingAsset] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const viewAll = selectedCollectionId === null
@@ -123,6 +124,7 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
       return
     }
 
+    setSelectingAsset(true)
     try {
       const detail = await assetsService.getAssetById(asset.id)
       if (!detail) {
@@ -150,12 +152,13 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
         await ui.document.field.setValue(serialized)
       }
     } catch (err: any) {
-      const errorMsg = err?.message || 'Failed to select asset'
       if (err?.status === 401 || err?.status === 403) {
         handleAuthError?.(err)
       } else {
-        message.error(errorMsg)
+        message.error('Unable to select asset. Please try again.')
       }
+    } finally {
+      setSelectingAsset(false)
     }
   }, [ui, isDialogMode, mode, setSelectedAsset, handleAuthError])
 
@@ -182,6 +185,7 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
     totalPages,
     collectionsLoading,
     assetsLoading,
+    selectingAsset,
     error,
     selectCollection,
     selectAsset,
