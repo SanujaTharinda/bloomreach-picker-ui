@@ -63,6 +63,7 @@ class AssetsService {
         pageSize: apiResponse.pageSize,
       }
     } catch (error: any) {
+      if (error?.name === 'AbortError') throw error
       console.error('Failed to fetch assets:', error)
       throw new Error(`Failed to fetch assets: ${error.message || 'Unknown error'}`)
     }

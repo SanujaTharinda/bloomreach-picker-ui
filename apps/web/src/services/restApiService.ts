@@ -104,8 +104,7 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
-      // Preserve AbortError for cancellation handling
-      if (error instanceof DOMException && error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw error
       }
       if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
