@@ -4,7 +4,7 @@ export const toAssetRecord = (asset: AssetDetail): AssetRecord => ({
   id: asset.id,
   title: asset.title,
   description: asset.description,
-  cdn_url: asset.url,
+  cdn_url: asset.url.replace(/\\\//g, '/'),
   fileSize: asset.fileSize,
   fileExtension: asset.fileExtension,
   createdAt: asset.createdAt || '',
