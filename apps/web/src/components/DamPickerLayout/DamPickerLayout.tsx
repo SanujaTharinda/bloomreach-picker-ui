@@ -1,6 +1,6 @@
 import { Layout, Button, Breadcrumb, Typography } from 'antd'
-import { AppstoreOutlined } from '@ant-design/icons'
-import { useMemo } from 'react'
+import { AppstoreOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { useMemo, useState } from 'react'
 import { useDamPickerContext } from '../../contexts/DamPickerContext'
 import { CollectionsTree } from '../CollectionsTree'
 import { AssetGrid } from '../AssetGrid'
@@ -13,6 +13,7 @@ const { Text } = Typography
 const PAGE_SIZE = 30
 
 export const DamPickerLayout = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const {
     collections,
     assets,
@@ -62,9 +63,21 @@ export const DamPickerLayout = () => {
         </div>
       </Header>
       <Layout className={styles.body}>
-        <Sider width={300} className={styles.sider}>
+        <Sider
+          width={280}
+          collapsedWidth={0}
+          collapsed={!sidebarOpen}
+          className={styles.sider}
+          trigger={null}
+        >
           <div className={styles.sidebarHeader}>
             <h3 className={styles.sidebarTitle}>Collections</h3>
+            <Button
+              type="text"
+              icon={<MenuFoldOutlined />}
+              onClick={() => setSidebarOpen(false)}
+              className={styles.collapseBtn}
+            />
           </div>
           <div className={styles.collectionsScrollable}>
             <CollectionsTree
@@ -79,6 +92,14 @@ export const DamPickerLayout = () => {
         <Content className={styles.content}>
           <div className={styles.contentHeader}>
             <div className={styles.contentHeaderTop}>
+              {!sidebarOpen && (
+                <Button
+                  type="text"
+                  icon={<MenuUnfoldOutlined />}
+                  onClick={() => setSidebarOpen(true)}
+                  className={styles.expandBtn}
+                />
+              )}
               <div className={styles.contentTitleSection}>
                 {breadcrumbItems.length > 0 ? (
                   <Breadcrumb items={breadcrumbItems} className={styles.breadcrumb} />

@@ -50,11 +50,20 @@
 .sider {
   background-color: $background-lighter;
   box-shadow: 2px 0 8px rgba(74, 158, 255, 0.05);
+  transition: all 0.2s ease;
+  
+  &:global(.ant-layout-sider-collapsed) {
+    overflow: hidden;
+  }
 }
 
 .sidebarHeader {
-  padding: $spacing-md $spacing-sm;
+  padding: $spacing-sm $spacing-sm;
   background: linear-gradient(135deg, $white 0%, $primary-lightest 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
 }
 
 .sidebarTitle {
@@ -64,8 +73,29 @@
   color: $text-primary;
 }
 
+.collapseBtn {
+  flex-shrink: 0;
+  color: $text-secondary;
+  
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-light, 0.1);
+  }
+}
+
+.expandBtn {
+  flex-shrink: 0;
+  color: $text-secondary;
+  margin-right: $spacing-xs;
+  
+  &:hover {
+    color: $primary-color;
+    background-color: rgba($primary-light, 0.1);
+  }
+}
+
 .collectionsScrollable {
-  height: calc(100vh - 64px - 60px); // viewport - top header - sidebar header
+  height: calc(100vh - 64px - 48px); // viewport - top header - sidebar header
   overflow-y: auto;
   overflow-x: hidden;
   padding-bottom: $spacing-md; // Space for last item to be fully visible
