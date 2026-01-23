@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { message } from 'antd'
 import { DocumentEditorMode } from '@bloomreach/ui-extension-saas'
 import { useAuthContext } from './AuthContext'
 import { useBloomreachContext } from './BloomreachContext'
@@ -117,11 +118,17 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const selectAsset = useCallback(async (asset: Asset) => {
-    if (!ui) throw new Error('UI extension not initialized')
+    if (!ui) {
+      message.error('UI extension not initialized')
+      return
+    }
 
     try {
       const detail = await assetsService.getAssetById(asset.id)
-      if (!detail) throw new Error(`Asset ${asset.id} not found`)
+      if (!detail) {
+        message.error(`Asset "${asset.title}" could not be loaded`)
+        return
+      }
 
       // Use title from search results (asset.title) as it comes from field8 metadata
       // get_resource_data often returns null title, causing fallback to "Resource {id}"
@@ -136,13 +143,21 @@ export const DamPickerProvider = ({ children }: { children: ReactNode }) => {
       if (isDialogMode) {
         await ui.dialog.close(serialized)
       } else {
-        if (mode !== DocumentEditorMode.Edit) throw new Error('Cannot set value in view mode')
+        if (mode !== DocumentEditorMode.Edit) {
+          message.error('Cannot set value in view mode')
+          return
+        }
         await ui.document.field.setValue(serialized)
       }
-    } catch (err) {
-      throw err
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Failed to select asset'
+      if (err?.status === 401 || err?.status === 403) {
+        handleAuthError?.(err)
+      } else {
+        message.error(errorMsg)
+      }
     }
-  }, [ui, isDialogMode, mode, setSelectedAsset])
+  }, [ui, isDialogMode, mode, setSelectedAsset, handleAuthError])
 
   const loadCollectionChildren = useCallback(async (id: string): Promise<Collection[]> => {
     try {

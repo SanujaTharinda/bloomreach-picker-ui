@@ -17,7 +17,9 @@ export const PaginationControls = ({
     if (currentPage > 1) onPageChange(currentPage - 1)
   }
 
-  const handleNext = () => onPageChange(currentPage + 1)
+  const handleNext = () => {
+    if (currentPage < totalPages) onPageChange(currentPage + 1)
+  }
 
   const startItem = totalAssets === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalAssets)

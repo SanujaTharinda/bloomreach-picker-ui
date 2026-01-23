@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Tree, Spin } from 'antd'
+import { Tree, Spin, message } from 'antd'
 import { FolderOutlined, FolderOpenOutlined } from '@ant-design/icons'
 import type { DataNode } from 'antd/es/tree'
 import type { Collection, CollectionsTreeProps } from '../../types'
@@ -40,25 +40,40 @@ export const CollectionsTree = ({
   const handleLoadData = useCallback(async (node: DataNode) => {
     if (node.isLeaf || node.children?.length || !loadCollectionChildren) return
 
-    const children = await loadCollectionChildren(node.key as string)
+    try {
+      const children = await loadCollectionChildren(node.key as string)
 
-    setCollectionProps(prev => {
-      const map = new Map(prev)
-      children.forEach(c => map.set(c.id, { hasResources: c.hasResources, hasChildren: c.hasChildren }))
-      return map
-    })
+      setCollectionProps(prev => {
+        const map = new Map(prev)
+        children.forEach(c => map.set(c.id, { hasResources: c.hasResources, hasChildren: c.hasChildren }))
+        return map
+      })
 
-    setTreeData(prev => {
-      const update = (nodes: DataNode[]): DataNode[] =>
-        nodes.map(n =>
-          n.key === node.key
-            ? { ...n, children: children.map(toNode) }
-            : n.children
-            ? { ...n, children: update(n.children) }
-            : n
-        )
-      return update(prev)
-    })
+      setTreeData(prev => {
+        const update = (nodes: DataNode[]): DataNode[] =>
+          nodes.map(n =>
+            n.key === node.key
+              ? { ...n, children: children.map(toNode) }
+              : n.children
+              ? { ...n, children: update(n.children) }
+              : n
+          )
+        return update(prev)
+      })
+    } catch {
+      message.error('Failed to load sub-collections')
+      setTreeData(prev => {
+        const update = (nodes: DataNode[]): DataNode[] =>
+          nodes.map(n =>
+            n.key === node.key
+              ? { ...n, isLeaf: true, children: [] }
+              : n.children
+              ? { ...n, children: update(n.children) }
+              : n
+          )
+        return update(prev)
+      })
+    }
   }, [loadCollectionChildren, toNode])
 
   const handleSelect = useCallback((keys: React.Key[]) => {
