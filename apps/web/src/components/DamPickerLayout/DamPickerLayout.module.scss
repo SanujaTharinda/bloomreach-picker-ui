@@ -2,7 +2,7 @@
 @use '../../styles/mixins' as *;
 
 .damPickerLayout {
-  height: 100vh; // Fixed viewport height - no page scroll
+  height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -10,11 +10,12 @@
 
 .topHeader {
   background: linear-gradient(135deg, $primary-lighter 0%, $white 100%);
-  padding: 0 $spacing-md;
-  height: 64px;
-  line-height: 64px;
+  padding: 0 $spacing-sm;
+  height: 44px;
+  line-height: 44px;
   box-shadow: 0 1px 3px rgba(74, 158, 255, 0.08);
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .headerContent {
@@ -27,14 +28,14 @@
 }
 
 .logo {
-  height: 40px;
+  height: 32px;
   width: auto;
   object-fit: contain;
 }
 
 .title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1rem;
   font-weight: 600;
   color: $text-primary;
   letter-spacing: -0.02em;
@@ -44,13 +45,16 @@
   flex: 1;
   display: flex;
   overflow: hidden;
-  min-height: 0; // Important for nested flex scroll
+  min-height: 0;
 }
 
 .sider {
   background-color: $background-lighter;
   box-shadow: 2px 0 8px rgba(74, 158, 255, 0.05);
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   
   &:global(.ant-layout-sider-collapsed) {
     overflow: hidden;
@@ -58,17 +62,18 @@
 }
 
 .sidebarHeader {
-  padding: $spacing-sm $spacing-sm;
+  padding: $spacing-xs $spacing-sm;
   background: linear-gradient(135deg, $white 0%, $primary-lightest 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: $spacing-sm;
+  gap: $spacing-xs;
+  flex-shrink: 0;
 }
 
 .sidebarTitle {
   margin: 0;
-  font-size: $font-size-md;
+  font-size: $font-size-base;
   font-weight: $font-weight-semibold;
   color: $text-primary;
 }
@@ -95,10 +100,10 @@
 }
 
 .collectionsScrollable {
-  height: calc(100vh - 64px - 48px); // viewport - top header - sidebar header
+  height: calc(100vh - 44px - 40px);
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: $spacing-md; // Space for last item to be fully visible
+  padding-bottom: $spacing-sm;
 }
 
 .content {
@@ -106,19 +111,18 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0; // Important for flex children to be scrollable
+  min-height: 0;
 }
 
 .assetGridScrollable {
   overflow-y: auto;
   overflow-x: hidden;
   flex: 1;
-  min-height: 0; // Important for flex children to be scrollable
-  // No padding here - AssetGrid has its own padding
+  min-height: 0;
 }
 
 .contentHeader {
-  padding: $spacing-md $spacing-sm;
+  padding: 6px $spacing-sm $spacing-xs;
   background: linear-gradient(135deg, $primary-lightest 0%, $white 100%);
   flex-shrink: 0;
 }
@@ -126,9 +130,9 @@
 .contentHeaderTop {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: $spacing-sm;
-  gap: $spacing-md;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: $spacing-sm;
 }
 
 .contentTitleSection {

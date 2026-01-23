@@ -27,24 +27,22 @@ export const PaginationControls = ({
       <Text type="secondary" className={styles.info}>
         Showing {startItem}-{endItem} of {totalAssets} assets
       </Text>
-      <Space>
+      <Space size="small">
         <Button
+          size="small"
           icon={<LeftOutlined />}
           onClick={handlePrevious}
           disabled={currentPage <= 1 || loading}
-        >
-          Previous
-        </Button>
+        />
         <Text type="secondary" className={styles.pageInfo}>
           Page {currentPage} of {totalPages}
         </Text>
         <Button
+          size="small"
           icon={<RightOutlined />}
           onClick={handleNext}
           disabled={loading || currentPage >= totalPages}
-        >
-          Next
-        </Button>
+        />
       </Space>
     </div>
   )

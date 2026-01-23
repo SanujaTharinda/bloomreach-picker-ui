@@ -4,18 +4,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-xs $spacing-sm;
   border-top: 1px solid $border-light;
   background-color: $white;
   flex-shrink: 0;
 }
 
 .info {
-  font-size: $font-size-base;
+  font-size: $font-size-sm;
 }
 
 .pageInfo {
-  font-size: $font-size-base;
+  font-size: $font-size-sm;
   min-width: 80px;
   text-align: center;
 }

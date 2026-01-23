@@ -16,7 +16,7 @@ const getApiKeyFromConfig = (ui: UiScope | null): string | null => {
 }
 
 const getDialogSizeFromConfig = (ui: UiScope | null): DialogSize => {
-  if (!ui) return DialogSize.Medium
+  if (!ui) return DialogSize.Large
 
   try {
     const config: ExtensionConfig = JSON.parse(ui.extension.config || '{}')
@@ -24,9 +24,9 @@ const getDialogSizeFromConfig = (ui: UiScope | null): DialogSize => {
     if (Object.values(DialogSize).includes(dialogSize as DialogSize))
       return dialogSize as DialogSize
 
-    return DialogSize.Medium
+    return DialogSize.Large
   } catch {
-    return DialogSize.Medium
+    return DialogSize.Large
   }
 }
 

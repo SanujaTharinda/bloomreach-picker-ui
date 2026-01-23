@@ -60,7 +60,7 @@ export const createMockUiScope = (config?: {
     fieldValue: config?.fieldValue || '',
     isDialogMode: config?.isDialogMode || false,
     dialogValue: config?.dialogValue || '',
-    dialogSize: config?.dialogSize ?? DialogSize.Medium,
+    dialogSize: config?.dialogSize ?? DialogSize.Large,
   }
 
   // Store field value in memory for mock
