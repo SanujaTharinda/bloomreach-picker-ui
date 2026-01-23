@@ -1,8 +1,6 @@
 /**
- * API-related types
+ * API contract types - only what's actually used
  */
-
-import type { Asset, Collection } from './entities'
 
 export interface ApiResponse<T> {
   data: T
@@ -16,7 +14,6 @@ export interface ApiError {
   status?: number
 }
 
-// API Response Types
 export interface ApiCollection {
   id: string
   name: string
@@ -27,28 +24,19 @@ export interface ApiCollection {
 export interface ApiAsset {
   id: string
   title: string
-  thumbnailUrl: string
-  dimensions: string
-  fileExtension: string
-  resourceType: string
+  thumbnailUrl?: string
+  dimensions?: string
+  fileExtension?: string
+  resourceType?: string
 }
 
 export interface ApiAssetDetails {
   id: string
   title: string
   description?: string
-  url: string // BFF returns 'url', not 'fullUrl'
-  thumbnailUrl?: string
-  previewUrl?: string
-  dimensions?: { width: number; height: number }
-  fileSize?: number
+  url?: string
   fileExtension?: string
-  mimeType?: string
-  metadata?: {
-    keywords?: string
-    photographer?: string
-    [key: string]: any
-  }
+  fileSize?: number
   createdAt?: string
   modifiedAt?: string
 }
@@ -58,28 +46,5 @@ export interface ApiAssetsSearchResponse {
   page: number
   pageSize: number
   totalCount: number
-  totalPages: number
-  hasNextPage: boolean
-  hasPreviousPage: boolean
-}
-
-// Internal types
-export interface AssetsResponse {
-  assets: Asset[]
-  total: number
-  page: number
-  pageSize: number
-}
-
-export interface AssetsQueryParams {
-  collectionId?: string | null
-  page?: number
-  pageSize?: number
-  searchQuery?: string
-  viewAll?: boolean
-}
-
-export interface CollectionsTreeResponse {
-  collections: Collection[]
 }
 

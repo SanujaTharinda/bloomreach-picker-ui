@@ -2,14 +2,14 @@
  * Mock implementation of Bloomreach UI Extension API for local development
  */
 
-import type { UiScope, DocumentEditorMode } from '@bloomreach/ui-extension-saas'
-import { UiStyling, DialogSize } from '@bloomreach/ui-extension-saas'
+import type { UiScope } from '@bloomreach/ui-extension-saas'
+import { UiStyling, DialogSize, DocumentEditorMode } from '@bloomreach/ui-extension-saas'
 
 interface MockUiScope extends UiScope {
   _mockConfig?: {
     apiKey?: string
     mode?: DocumentEditorMode
-    currentValue?: string
+    fieldValue?: string
     isDialogMode?: boolean
     dialogValue?: string
   }
@@ -49,24 +49,23 @@ export const isLocalDevelopment = (): boolean => {
 export const createMockUiScope = (config?: {
   apiKey?: string
   mode?: DocumentEditorMode
-  currentValue?: string
+  fieldValue?: string
   isDialogMode?: boolean
   dialogValue?: string
-  dialogSize?: 'small' | 'medium' | 'large'
+  dialogSize?: DialogSize
 }): MockUiScope => {
   const mockConfig = {
     apiKey: config?.apiKey || 'mock-api-key-12345',
-    mode: (config?.mode || 'edit') as DocumentEditorMode,
-    currentValue: config?.currentValue || '',
+    mode: config?.mode ?? DocumentEditorMode.Edit,
+    fieldValue: config?.fieldValue || '',
     isDialogMode: config?.isDialogMode || false,
     dialogValue: config?.dialogValue || '',
-    dialogSize: config?.dialogSize || 'medium',
+    dialogSize: config?.dialogSize ?? DialogSize.Medium,
   }
 
   // Store field value in memory for mock
-  let fieldValue = mockConfig.currentValue
+  let fieldValue = mockConfig.fieldValue
   
-  // Store dialog promise resolver for mock dialog.open()
   let dialogResolver: ((value: any) => void) | null = null
   let dialogRejector: ((error: any) => void) | null = null
 
@@ -115,7 +114,7 @@ export const createMockUiScope = (config?: {
         id: 'mock-document-id',
         displayName: 'Mock Document',
         locale: 'en',
-        mode: (mockConfig.mode || 'edit') as DocumentEditorMode,
+        mode: mockConfig.mode ?? DocumentEditorMode.Edit,
         urlName: 'mock-document',
         variant: {
           id: 'draft',
@@ -194,16 +193,10 @@ export const createMockUiScope = (config?: {
         // Return a promise that resolves when dialog.close() or dialog.cancel() is called
         // Listen for messages from the dialog window
         const messageHandler = (event: MessageEvent) => {
-          // Only accept messages from the same origin
-          if (event.origin !== window.location.origin) {
-            return
-          }
-          
+          if (event.origin !== window.location.origin) return
           if (event.data?.type === 'bloomreach-dialog-close') {
             window.removeEventListener('message', messageHandler)
-            if (dialogWindow && !dialogWindow.closed) {
-              dialogWindow.close()
-            }
+            if (dialogWindow && !dialogWindow.closed) dialogWindow.close()
             if (dialogResolver) {
               dialogResolver(event.data.value)
               dialogResolver = null
@@ -211,9 +204,7 @@ export const createMockUiScope = (config?: {
             }
           } else if (event.data?.type === 'bloomreach-dialog-cancel') {
             window.removeEventListener('message', messageHandler)
-            if (dialogWindow && !dialogWindow.closed) {
-              dialogWindow.close()
-            }
+            if (dialogWindow && !dialogWindow.closed) dialogWindow.close()
             if (dialogRejector) {
               const error = new Error('Dialog canceled')
               // @ts-expect-error - Adding code property to match UiExtensionError
@@ -224,8 +215,6 @@ export const createMockUiScope = (config?: {
             }
           }
         }
-        
-        // Also handle window closed manually
         const checkClosed = setInterval(() => {
           if (dialogWindow.closed) {
             clearInterval(checkClosed)
@@ -250,19 +239,14 @@ export const createMockUiScope = (config?: {
       },
       close: async (value: any) => {
         console.log('[Mock] Dialog closed with value:', value)
-        
-        // If we're in a dialog window (opened by dialog.open), send message to parent
         if (mockConfig.isDialogMode && window.opener) {
           window.opener.postMessage({
             type: 'bloomreach-dialog-close',
             value: value,
           }, window.location.origin)
-          // Close the dialog window
           window.close()
           return
         }
-        
-        // Otherwise, resolve the promise directly (for direct calls)
         if (dialogResolver) {
           dialogResolver(value)
           dialogResolver = null
@@ -271,18 +255,14 @@ export const createMockUiScope = (config?: {
       },
       cancel: async () => {
         console.log('[Mock] Dialog canceled')
-        
-        // If we're in a dialog window (opened by dialog.open), send message to parent
         if (mockConfig.isDialogMode && window.opener) {
           window.opener.postMessage({
             type: 'bloomreach-dialog-cancel',
           }, window.location.origin)
-          // Close the dialog window
           window.close()
           return
         }
-        
-        // Otherwise, reject the promise directly (for direct calls)
+
         if (dialogRejector) {
           const error = new Error('Dialog canceled')
           // @ts-expect-error - Adding code property to match UiExtensionError
@@ -305,10 +285,10 @@ export const createMockUiScope = (config?: {
 export const mockUiExtensionRegister = async (config?: {
   apiKey?: string
   mode?: DocumentEditorMode
-  currentValue?: string
+  fieldValue?: string
   isDialogMode?: boolean
   dialogValue?: string
-  dialogSize?: 'small' | 'medium' | 'large'
+  dialogSize?: DialogSize
 }): Promise<UiScope> => {
   // Simulate async registration delay
   await new Promise((resolve) => setTimeout(resolve, 100))

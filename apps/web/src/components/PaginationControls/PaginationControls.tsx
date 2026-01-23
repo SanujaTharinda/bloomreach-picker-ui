@@ -5,23 +5,19 @@ import styles from './PaginationControls.module.scss'
 
 const { Text } = Typography
 
-export const PaginationControls: React.FC<PaginationControlsProps> = ({
+export const PaginationControls = ({
   currentPage,
   totalPages,
   totalAssets,
   pageSize,
   onPageChange,
   loading = false,
-}) => {
+}: PaginationControlsProps) => {
   const handlePrevious = () => {
-    if (currentPage > 1) {
-      onPageChange(currentPage - 1)
-    }
+    if (currentPage > 1) onPageChange(currentPage - 1)
   }
 
-  const handleNext = () => {
-    onPageChange(currentPage + 1)
-  }
+  const handleNext = () => onPageChange(currentPage + 1)
 
   const startItem = totalAssets === 0 ? 0 : (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalAssets)

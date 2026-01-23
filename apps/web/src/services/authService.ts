@@ -11,10 +11,7 @@ class AuthService {
    * Authentication will be validated when making actual API calls
    */
   setApiKey(apiKey: string | null): void {
-    if (apiKey) {
-      console.log('Setting API key', apiKey)
-      restApiService.setApiKey(apiKey)
-    }
+    if (apiKey) restApiService.setApiKey(apiKey)
   }
 
   /**
@@ -25,7 +22,6 @@ class AuthService {
   }
 }
 
-// Export singleton instance
 export const authService = new AuthService()
 
 

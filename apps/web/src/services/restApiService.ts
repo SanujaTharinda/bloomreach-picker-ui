@@ -54,10 +54,7 @@ class RestApiService {
       'Content-Type': 'application/json',
     }
 
-    if (this.apiKey) {
-      headers['Authorization'] = `Bearer ${this.apiKey}`
-    }
-
+    if (this.apiKey) headers['Authorization'] = `Bearer ${this.apiKey}`
     return headers
   }
 
@@ -91,10 +88,7 @@ class RestApiService {
           const errorJson = JSON.parse(errorText)
           errorMessage = errorJson.message || errorJson.error || errorMessage
         } catch {
-          // If response is not JSON, use the text or default message
-          if (errorText) {
-            errorMessage = errorText
-          }
+          if (errorText) errorMessage = errorText
         }
 
         throw {
@@ -109,7 +103,6 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
-      // Re-throw ApiError as-is, otherwise wrap it
       if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
         throw error
       }
@@ -151,10 +144,7 @@ class RestApiService {
           const errorJson = JSON.parse(errorText)
           errorMessage = errorJson.message || errorJson.error || errorMessage
         } catch {
-          // If response is not JSON, use the text or default message
-          if (errorText) {
-            errorMessage = errorText
-          }
+          if (errorText) errorMessage = errorText
         }
 
         throw {
@@ -169,7 +159,6 @@ class RestApiService {
         status: response.status,
       }
     } catch (error) {
-      // Re-throw ApiError as-is, otherwise wrap it
       if (error && typeof error === 'object' && 'status' in error && 'message' in error) {
         throw error
       }
@@ -181,10 +170,5 @@ class RestApiService {
   }
 }
 
-// Export the class for testing and custom instances
-export { RestApiService }
-
-// Export singleton instance for convenience (shared API key state across the app)
-// For testing, you can create a new instance: new RestApiService()
 export const restApiService = new RestApiService()
 

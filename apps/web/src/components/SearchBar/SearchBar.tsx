@@ -4,27 +4,20 @@ import { useState, useEffect } from 'react'
 import type { SearchBarProps } from '../../types/components'
 import styles from './SearchBar.module.scss'
 
-export const SearchBar: React.FC<SearchBarProps> = ({
+export const SearchBar = ({
   value,
   onSearch,
   placeholder = 'Search assets...',
   loading = false,
-}) => {
+}: SearchBarProps) => {
   const [searchValue, setSearchValue] = useState(value)
 
-  // Sync internal state with external value prop
-  useEffect(() => {
-    setSearchValue(value)
-  }, [value])
+  useEffect(() => setSearchValue(value), [value])
 
-  const handleSearch = () => {
-    onSearch(searchValue)
-  }
+  const handleSearch = () => onSearch(searchValue)
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch()
-    }
+    if (e.key === 'Enter') handleSearch()
   }
 
   return (
@@ -32,7 +25,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
       <Input
         value={searchValue}
         onChange={(e) => setSearchValue(e.target.value)}
-        onKeyPress={handleKeyPress}
+        onKeyDown={handleKeyPress}
         placeholder={placeholder}
         prefix={<SearchOutlined />}
         className={styles.input}

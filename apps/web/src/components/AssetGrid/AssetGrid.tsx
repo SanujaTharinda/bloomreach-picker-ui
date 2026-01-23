@@ -4,27 +4,25 @@ import styles from './AssetGrid.module.scss';
 
 const { Text } = Typography
 
-export const AssetGrid: React.FC<AssetGridProps> = ({
+export const AssetGrid = ({
   assets,
   selectedAssetId,
   onSelectAsset,
   loading = false,
-}) => {
-  if (loading) {
+}: AssetGridProps) => {
+  if (loading)
     return (
       <div className={styles.loading}>
         <Spin size="large" />
       </div>
     )
-  }
 
-  if (assets.length === 0) {
+  if (assets.length === 0)
     return (
       <div className={styles.empty}>
         <Empty description="No assets found in this collection" />
       </div>
     )
-  }
 
   return (
     <div className={styles.assetGrid}>
@@ -39,18 +37,17 @@ export const AssetGrid: React.FC<AssetGridProps> = ({
               isSelected ? styles.cardSelected : styles.cardUnselected
             }`}
             onClick={() => onSelectAsset(asset)}
-            bodyStyle={{ padding: '0.75rem' }}
           >
             <div className={styles.imageWrapper}>
               <img
-                src={asset.thumbnailUrl || asset.url || ''}
-                alt={asset.title || asset.alt || ''}
+                src={asset.thumbnailUrl}
+                alt={asset.title}
                 className={styles.image}
               />
             </div>
             <div className={styles.info}>
               <Text strong className={styles.infoFilename}>
-                {asset.title || asset.filename || ''}
+                {asset.title}
               </Text>
             </div>
           </Card>

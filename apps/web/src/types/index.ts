@@ -1,31 +1,20 @@
-/**
- * Central type exports
- * Import types from here for convenience
- */
-
 // Entities
-export type { Asset, Collection, SerializedAttachment } from './entities'
+export type { Asset, AssetDetail, Collection, AssetRecord } from './entities'
 
 // API
-export type {
-  ApiResponse,
-  ApiError,
-  AssetsResponse,
-  CollectionsTreeResponse,
-} from './api'
+export type { ApiResponse, ApiError } from './api'
 
 // Auth
 export type { AuthResult, ExtensionConfig, AuthContextValue } from './auth'
 
 // Bloomreach
-export type { BloomreachContextValue, DocumentEditorMode } from './bloomreach'
+export type { BloomreachContextValue } from './bloomreach'
+export { DocumentEditorMode, DialogSize } from './bloomreach'
 
 // Components
 export type {
-  AssetGridProps,
-  CollectionPathItem,
   CollectionsTreeProps,
-  DamPickerLayoutProps,
+  AssetGridProps,
   UnauthorizedScreenProps,
   BloomreachProviderProps,
   AuthProviderProps,
@@ -36,8 +25,8 @@ export type {
 // Hooks
 export type {
   UseAuthenticationReturn,
-  UseAssetsReturn,
-  UseCollectionsReturn,
   UseBloomreachExtensionReturn,
 } from './hooks'
 
+// DAM Picker
+export type { CollectionPathItem, DamPickerContextValue } from './damPicker'

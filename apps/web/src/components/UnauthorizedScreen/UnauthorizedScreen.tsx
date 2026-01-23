@@ -3,7 +3,7 @@ import { LockOutlined } from '@ant-design/icons'
 import type { UnauthorizedScreenProps } from '../../types'
 import styles from './UnauthorizedScreen.module.scss'
 
-export const UnauthorizedScreen: React.FC<UnauthorizedScreenProps> = ({ message }) => {
+export const UnauthorizedScreen = ({ message }: UnauthorizedScreenProps) => {
   return (
     <div className={styles.unauthorizedScreen}>
       <Result

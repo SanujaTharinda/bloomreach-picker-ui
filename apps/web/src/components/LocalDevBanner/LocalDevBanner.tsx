@@ -5,10 +5,10 @@
 import { Alert } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 
-export const LocalDevBanner: React.FC = () => {
+export const LocalDevBanner = () => {
   return (
     <Alert
-      message="Local Development Mode"
+      title="Local Development Mode"
       description="Running in mock mode. Use URL parameters to configure: ?apiKey=xxx&mode=edit&value=xxx&dialog=true"
       type="info"
       icon={<InfoCircleOutlined />}

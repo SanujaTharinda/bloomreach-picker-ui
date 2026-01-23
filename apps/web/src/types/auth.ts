@@ -1,6 +1,4 @@
-/**
- * Authentication-related types
- */
+import type { DialogSize } from '@bloomreach/ui-extension-saas'
 
 export interface AuthResult {
   isValid: boolean
@@ -9,7 +7,7 @@ export interface AuthResult {
 
 export interface ExtensionConfig {
   apiKey?: string
-  dialogSize?: 'small' | 'medium' | 'large'
+  dialogSize?: DialogSize
   [key: string]: any
 }
 
@@ -19,6 +17,4 @@ export interface AuthContextValue {
   authError: string
   apiKeySet: boolean
   handleAuthError?: (error: any) => void
-  markAuthVerified?: () => void
 }
-

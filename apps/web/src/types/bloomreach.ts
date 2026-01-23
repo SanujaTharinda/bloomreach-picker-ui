@@ -1,20 +1,17 @@
-/**
- * Bloomreach UI Extension types
- */
-
 import type { UiScope } from '@bloomreach/ui-extension-saas'
+import { DocumentEditorMode, DialogSize } from '@bloomreach/ui-extension-saas'
+import type { AssetRecord } from './entities'
+
+export { DocumentEditorMode, DialogSize }
 
 export interface BloomreachContextValue {
   ui: UiScope | null
-  currentValue: string
-  mode: 'view' | 'edit' | 'compare'
+  selectedAsset: AssetRecord | null
+  setSelectedAsset: (asset: AssetRecord | null) => void
+  mode: DocumentEditorMode
   isDialogMode: boolean
-  dialogCurrentValue: string
   isLoading: boolean
   error: string | null
   getApiKey: () => string | null
-  getDialogSize: () => 'small' | 'medium' | 'large'
+  getDialogSize: () => DialogSize
 }
-
-export type DocumentEditorMode = 'view' | 'edit' | 'compare'
-
