@@ -1,204 +1,236 @@
 /**
  * Tag to Resource Space Field Mappings Configuration
  * 
- * This configuration maps Brandfolder tags to specific Resource Space metadata fields.
- * Tags that don't match any mapping will be placed in the "keywords" field.
+ * This configuration maps Brandfolder tags to Resource Space metadata field values.
+ * The system automatically determines which field based on the mapped value.
+ * 
+ * Tags not in the mapping (or with empty values) are ignored completely.
  */
 
-/**
- * Matching strategy for tag-to-field mapping
- * - 'exact': Tag must match exactly (case-insensitive)
- * - 'prefix': Tag must start with a prefix (e.g., "BikeLine: Mountain" → extracts "Mountain")
- * - 'contains': Tag contains the specified string (case-insensitive)
- * - 'values': Tag must be one of the allowed values (maps to the tag value itself)
- */
-export type MatchStrategy = 'exact' | 'prefix' | 'contains' | 'values';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
 
-/**
- * Configuration for mapping tags to Resource Space fields
- */
-export interface TagFieldMapping {
-  /** Resource Space field name/ID to update */
-  fieldName: string;
-  /** Matching strategy */
-  strategy: MatchStrategy;
-  /** 
-   * Match value(s) based on strategy:
-   * - 'exact': The exact tag name to match
-   * - 'prefix': The prefix to look for (e.g., "BikeLine: ")
-   * - 'contains': The substring to look for
-   * - 'values': Array of allowed values
-   */
-  match: string | string[];
-  /**
-   * Optional: Transform the matched value before setting it
-   * - For 'prefix': Extracts the part after the prefix
-   * - For 'exact'/'contains': Uses the matched tag name
-   * - For 'values': Uses the matched value directly
-   */
-  transform?: (tag: string, match: string) => string;
-  /**
-   * Optional: For boolean fields, set this value when the tag is present
-   * If not specified, the tag value (or transformed value) is used
-   */
-  booleanValue?: string;
-}
+// Get the directory of this module (works with ES modules)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Result of categorizing tags
  */
 export interface CategorizedTags {
-  /** Tags mapped to specific fields: { fieldName: value } */
-  fieldValues: Record<string, string>;
-  /** Tags that didn't match any mapping (go to keywords) */
-  unmatchedTags: string[];
+  /** Tags mapped to specific fields: { fieldId: value } */
+  fieldValues: Record<number, string>;
 }
 
 /**
  * ============================================
- * CONFIGURE YOUR TAG-TO-FIELD MAPPINGS HERE
+ * RESOURCE SPACE FIELD CONFIGURATION
  * ============================================
  * 
- * Examples:
+ * Loaded from: resourcespace_field_config.json (in migration root folder)
  * 
- * 1. Exact match - tag "Electric" sets field "is_electric" to "Yes"
- *    { fieldName: 'is_electric', strategy: 'exact', match: 'Electric', booleanValue: 'Yes' }
- * 
- * 2. Prefix extraction - tag "BikeLine: Mountain" sets field "bike_line" to "Mountain"
- *    { fieldName: 'bike_line', strategy: 'prefix', match: 'BikeLine: ' }
- * 
- * 3. Values list - any of these values sets the "bike_type" field
- *    { fieldName: 'bike_type', strategy: 'values', match: ['Road', 'Mountain', 'Hybrid', 'City'] }
- * 
- * 4. Contains match - any tag containing "2024" sets the "model_year" field
- *    { fieldName: 'model_year', strategy: 'contains', match: '2024' }
+ * Contains:
+ * - standardFields: IDs for title, description (caption) fields
+ * - customFields: Custom metadata fields with their IDs and allowed values
  */
-export const TAG_FIELD_MAPPINGS: TagFieldMapping[] = [
-  // ========== ADD YOUR MAPPINGS BELOW ==========
-  
-  // Example: Boolean field for electric bikes
-  // { 
-  //   fieldName: 'is_electric', 
-  //   strategy: 'exact', 
-  //   match: 'Electric', 
-  //   booleanValue: 'Yes' 
-  // },
-  
-  // Example: Bike line extracted from prefix
-  // { 
-  //   fieldName: 'bike_line', 
-  //   strategy: 'prefix', 
-  //   match: 'BikeLine: ' 
-  // },
-  
-  // Example: Bike type from predefined values
-  // { 
-  //   fieldName: 'bike_type', 
-  //   strategy: 'values', 
-  //   match: ['Road', 'Mountain', 'Hybrid', 'City', 'Gravel', 'E-Bike'] 
-  // },
-  
-  // Example: Model year from any tag containing the year
-  // { 
-  //   fieldName: 'model_year', 
-  //   strategy: 'contains', 
-  //   match: '2024' 
-  // },
+interface ResourceSpaceFieldConfig {
+  standardFields: {
+    title: number;
+    description: number;
+  };
+  customFields: Record<string, { fieldId: number; displayName: string; values: string[] }>;
+}
 
-  // ========== ADD YOUR MAPPINGS ABOVE ==========
-];
+const DEFAULT_FIELD_CONFIG: ResourceSpaceFieldConfig = {
+  standardFields: {
+    title: 8,       // Default title field ID
+    description: 3, // Default caption field ID
+  },
+  customFields: {},
+};
+
+function loadFieldConfig(): ResourceSpaceFieldConfig {
+  const configFilePath = path.resolve(__dirname, '../../metadata-config/resourcespace_field_config.json');
+  
+  try {
+    if (fs.existsSync(configFilePath)) {
+      const content = fs.readFileSync(configFilePath, 'utf-8');
+      const config = JSON.parse(content) as ResourceSpaceFieldConfig;
+      const customFieldCount = Object.keys(config.customFields || {}).length;
+      console.log(`Loaded ResourceSpace field config from ${configFilePath}`);
+      console.log(`  - Standard fields: title=${config.standardFields?.title}, description=${config.standardFields?.description}`);
+      console.log(`  - Custom fields: ${customFieldCount}`);
+      return {
+        standardFields: { ...DEFAULT_FIELD_CONFIG.standardFields, ...config.standardFields },
+        customFields: config.customFields || {},
+      };
+    } else {
+      console.warn(`Field config file not found: ${configFilePath}. Using defaults.`);
+      return DEFAULT_FIELD_CONFIG;
+    }
+  } catch (error) {
+    console.error(`Failed to load field config from ${configFilePath}:`, error);
+    return DEFAULT_FIELD_CONFIG;
+  }
+}
+
+const FIELD_CONFIG = loadFieldConfig();
+
+/**
+ * Standard ResourceSpace field IDs
+ * Configurable via resourcespace_field_config.json
+ */
+export const STANDARD_FIELD_IDS = {
+  title: FIELD_CONFIG.standardFields.title,
+  description: FIELD_CONFIG.standardFields.description,
+} as const;
+
+/**
+ * Custom ResourceSpace field definitions
+ * Configurable via resourcespace_field_config.json
+ */
+export const RESOURCESPACE_FIELDS = FIELD_CONFIG.customFields;
+
+/**
+ * ============================================
+ * BRANDFOLDER TAG TO RESOURCE SPACE VALUE MAPPING
+ * ============================================
+ * 
+ * Loaded from: brandfolder_b_dam_metadata_mapping.json (in migration root folder)
+ * 
+ * Maps Brandfolder tags to Resource Space field values.
+ * - Key: Brandfolder tag (case-insensitive matching)
+ * - Value: Resource Space field value (the system determines which field by ID)
+ * 
+ * Logic:
+ * - Tag with non-empty value → Maps to the appropriate field
+ * - Tag with empty value ('') → Ignored
+ * - Tag NOT in this mapping → Ignored
+ * 
+ * Only tags explicitly mapped to a Resource Space value will be processed.
+ */
+function loadTagMapping(): Record<string, string> {
+  // Path to the mapping file (in metadata-config folder)
+  const mappingFilePath = path.resolve(__dirname, '../../metadata-config/brandfolder_b_dam_metadata_mapping.json');
+  
+  try {
+    if (fs.existsSync(mappingFilePath)) {
+      const content = fs.readFileSync(mappingFilePath, 'utf-8');
+      const data = JSON.parse(content);
+      // Handle both formats: { mapping: {...} } or direct { tag: value }
+      const mapping = data.mapping || data;
+      console.log(`Loaded ${Object.keys(mapping).length} tag mappings from ${mappingFilePath}`);
+      return mapping as Record<string, string>;
+    } else {
+      console.warn(`Tag mapping file not found: ${mappingFilePath}. Using empty mapping.`);
+      return {};
+    }
+  } catch (error) {
+    console.error(`Failed to load tag mapping from ${mappingFilePath}:`, error);
+    return {};
+  }
+}
+
+export const BRANDFOLDER_B_DAM_TAG_MAPPING: Record<string, string> = loadTagMapping();
+
+/**
+ * Build a reverse lookup: Resource Space value -> field ID
+ */
+function buildValueToFieldLookup(): Map<string, number> {
+  const lookup = new Map<string, number>();
+  
+  for (const field of Object.values(RESOURCESPACE_FIELDS)) {
+    for (const value of field.values) {
+      lookup.set(value.toLowerCase(), field.fieldId);
+    }
+  }
+  
+  return lookup;
+}
+
+// Pre-build lookups for performance
+const VALUE_TO_FIELD_LOOKUP = buildValueToFieldLookup();
+const TAG_MAPPING_LOWER = new Map(
+  Object.entries(BRANDFOLDER_B_DAM_TAG_MAPPING).map(([tag, value]) => [tag.toLowerCase(), value])
+);
 
 /**
  * Categorize tags based on the configured mappings
  * @param tags Array of Brandfolder tags
- * @returns Object with fieldValues (mapped tags) and unmatchedTags (for keywords)
+ * @returns Object with fieldValues (mapped tags to Resource Space field IDs)
+ * 
+ * Logic:
+ * - Tag in mapping with value → Maps to the appropriate Resource Space field ID
+ * - Tag in mapping with '' → Ignored
+ * - Tag NOT in mapping → Ignored
  */
 export function categorizeTags(tags: string[]): CategorizedTags {
-  const fieldValues: Record<string, string> = {};
-  const unmatchedTags: string[] = [];
-  const processedTags = new Set<string>();
+  const fieldValues: Record<number, string> = {};
 
   for (const tag of tags) {
-    let matched = false;
     const tagLower = tag.toLowerCase();
-
-    for (const mapping of TAG_FIELD_MAPPINGS) {
-      const matchResult = checkTagMatch(tag, tagLower, mapping);
+    
+    // Check if tag is in our mapping
+    if (TAG_MAPPING_LOWER.has(tagLower)) {
+      const resourceSpaceValue = TAG_MAPPING_LOWER.get(tagLower)!;
       
-      if (matchResult.matched) {
-        // If this field already has a value, append with comma
-        // (handles cases where multiple tags map to the same field)
-        if (fieldValues[mapping.fieldName]) {
-          fieldValues[mapping.fieldName] += `, ${matchResult.value}`;
-        } else {
-          fieldValues[mapping.fieldName] = matchResult.value;
-        }
-        matched = true;
-        processedTags.add(tag);
-        break; // Stop checking other mappings for this tag
+      if (resourceSpaceValue === '') {
+        // Empty mapping = ignore this tag completely
+        continue;
       }
-    }
-
-    if (!matched) {
-      unmatchedTags.push(tag);
+      
+      // Find which field ID this value belongs to
+      const fieldId = VALUE_TO_FIELD_LOOKUP.get(resourceSpaceValue.toLowerCase());
+      
+      if (fieldId !== undefined) {
+        // Add to the appropriate field
+        if (fieldValues[fieldId]) {
+          fieldValues[fieldId] += `, ${resourceSpaceValue}`;
+        } else {
+          fieldValues[fieldId] = resourceSpaceValue;
+        }
+      }
     }
   }
 
-  return { fieldValues, unmatchedTags };
+  return { fieldValues };
 }
 
 /**
- * Check if a tag matches a mapping configuration
+ * Build metadata object for ResourceSpace create_resource API
+ * Combines standard fields (title, caption) with custom field mappings
+ * 
+ * @param title Asset title
+ * @param description Asset description (from Brandfolder) → maps to caption in ResourceSpace
+ * @param customFields Mapped tag values by field ID
+ * @returns JSON string for metadata parameter
  */
-function checkTagMatch(
-  tag: string, 
-  tagLower: string, 
-  mapping: TagFieldMapping
-): { matched: boolean; value: string } {
-  const { strategy, match, booleanValue, transform } = mapping;
+export function buildResourceMetadata(
+  title: string,
+  description: string,
+  customFields: Record<number, string>
+): string {
+  const metadata: Record<number, string> = {
+    [STANDARD_FIELD_IDS.title]: title,
+  };
 
-  switch (strategy) {
-    case 'exact': {
-      const matchStr = typeof match === 'string' ? match : match[0];
-      if (tagLower === matchStr.toLowerCase()) {
-        const value = booleanValue || (transform ? transform(tag, matchStr) : tag);
-        return { matched: true, value };
-      }
-      break;
-    }
+  // Map Brandfolder description to ResourceSpace caption field
+  if (description) {
+    metadata[STANDARD_FIELD_IDS.description] = description;
+  }
 
-    case 'prefix': {
-      const prefix = typeof match === 'string' ? match : match[0];
-      if (tagLower.startsWith(prefix.toLowerCase())) {
-        // Extract the part after the prefix
-        const extractedValue = tag.substring(prefix.length).trim();
-        const value = booleanValue || (transform ? transform(tag, prefix) : extractedValue);
-        return { matched: true, value };
-      }
-      break;
-    }
-
-    case 'contains': {
-      const substring = typeof match === 'string' ? match : match[0];
-      if (tagLower.includes(substring.toLowerCase())) {
-        const value = booleanValue || (transform ? transform(tag, substring) : tag);
-        return { matched: true, value };
-      }
-      break;
-    }
-
-    case 'values': {
-      const allowedValues = Array.isArray(match) ? match : [match];
-      for (const allowedValue of allowedValues) {
-        if (tagLower === allowedValue.toLowerCase()) {
-          const value = booleanValue || (transform ? transform(tag, allowedValue) : tag);
-          return { matched: true, value };
-        }
-      }
-      break;
+  // Add custom fields from tag mappings
+  for (const [fieldId, value] of Object.entries(customFields)) {
+    if (value) {
+      metadata[parseInt(fieldId, 10)] = value;
     }
   }
 
-  return { matched: false, value: '' };
+  return JSON.stringify(metadata);
 }
 
+/**
+ * Legacy export for backward compatibility
+ */
+export const TAG_FIELD_MAPPINGS = Object.values(RESOURCESPACE_FIELDS);

@@ -41,11 +41,9 @@ export interface BdamResponse {
   id: string;
   title: string;
   description?: string;
-  full_url: string;
   cdn_url: string;
   fileSize: number;
   fileExtension: string;
-  metadata?: Record<string, unknown>;
   createdAt: string;
   modifiedAt: string;
 }
@@ -77,9 +75,7 @@ export class ResourceSpaceService {
       archive: '0', // Active
     };
 
-    if (metadata) {
-      parameters.metadata = metadata;
-    }
+    if (metadata) parameters.metadata = metadata;
 
     const url = buildSignedUrl(
       this.baseUrl,
@@ -332,6 +328,52 @@ export class ResourceSpaceService {
   }
 
   /**
+   * Get resource field/metadata data by reference ID
+   * Uses get_resource_field_data API to get metadata fields (title, description, keywords, etc.)
+   * This is different from get_resource_data which only returns resource table properties
+   */
+  async getResourceFieldData(ref: number): Promise<Record<string, string>> {
+    const parameters: Record<string, string> = {
+      resource: ref.toString(),
+    };
+
+    const url = buildSignedUrl(
+      this.baseUrl,
+      this.defaultUser,
+      this.apiKey,
+      'get_resource_field_data',
+      parameters
+    );
+
+    const response = await fetchWithRetry(url);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `ResourceSpace API error: ${response.status} ${response.statusText} - ${errorText}`
+      );
+    }
+
+    const responseText = await response.text();
+    const trimmedResponse = responseText.trim();
+
+    // Handle empty or false responses
+    if (trimmedResponse === 'false' || trimmedResponse === 'null' || trimmedResponse === '' || trimmedResponse === '[]') {
+      await Logger.info(`get_resource_field_data returned empty for resource ${ref}`);
+      return {};
+    }
+
+    try {
+      const data = JSON.parse(responseText) as Record<string, string>;
+      await Logger.info(`get_resource_field_data response: ${JSON.stringify(data)}`);
+      return data;
+    } catch (error) {
+      await Logger.warn(`Failed to parse get_resource_field_data response: ${responseText}`);
+      return {};
+    }
+  }
+
+  /**
    * Get complete resource information formatted for B-DAM response
    * @param ref Resource ID
    * @param knownMetadata Optional - if title/description are already known, skip fetching field data
@@ -363,8 +405,7 @@ export class ResourceSpaceService {
       id: resourceId.toString(),
       title,
       description,
-      full_url: fullUrl,
-      cdn_url: fullUrl, // Use original quality URL for cdn_url as well
+      cdn_url: fullUrl,
       fileSize: resourceData.file_size || 0,
       fileExtension: resourceData.file_extension || '',
       createdAt: resourceData.creation_date || new Date().toISOString(),
@@ -562,84 +603,6 @@ export class ResourceSpaceService {
     } else {
       await Logger.info(`Successfully updated field ${fieldId} for resource ${resourceRef}`);
     }
-  }
-
-  /**
-   * Update resource metadata from Brandfolder data
-   * Uses update_field API for each metadata field (parallel execution)
-   * @param resourceRef The resource ID
-   * @param metadata The metadata to set
-   */
-  async updateResourceMetadata(
-    resourceRef: number,
-    metadata: {
-      title?: string;
-      description?: string;
-      keywords?: string[];
-      brandfolderAssetId?: string;
-      brandfolderAttachmentId?: string;
-      /** Custom fields mapped from categorized tags: { fieldName: value } */
-      customFields?: Record<string, string>;
-    }
-  ): Promise<void> {
-    await Logger.info(`Updating metadata for resource ${resourceRef}`);
-
-    // Build list of field updates
-    const updates: Array<{ field: string; value: string }> = [];
-
-    if (metadata.title) {
-      updates.push({ field: 'title', value: metadata.title });
-    }
-
-    if (metadata.description) {
-      updates.push({ field: 'description', value: metadata.description });
-    }
-
-    if (metadata.keywords && metadata.keywords.length > 0) {
-      updates.push({ field: 'keywords', value: metadata.keywords.join(', ') });
-    }
-
-    // Add custom fields from categorized tags (e.g., bike_line, is_electric, etc.)
-    if (metadata.customFields) {
-      for (const [fieldName, value] of Object.entries(metadata.customFields)) {
-        if (value) {
-          updates.push({ field: fieldName, value });
-        }
-      }
-    }
-
-    // if (metadata.brandfolderAssetId) {
-    //   updates.push({ field: 'brandfolder_asset_id', value: metadata.brandfolderAssetId });
-    // }
-
-    // if (metadata.brandfolderAttachmentId) {
-    //   updates.push({ field: 'brandfolder_attachment_id', value: metadata.brandfolderAttachmentId });
-    // }
-
-    if (updates.length === 0) {
-      await Logger.info(`No metadata to update for resource ${resourceRef}`);
-      return;
-    }
-
-    const results = await Promise.allSettled(
-      updates.map(update => this.updateResourceField(resourceRef, update.field, update.value))
-    );
-
-    // Log results
-    let successCount = 0;
-    let failCount = 0;
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
-      const update = updates[i];
-      if (result.status === 'rejected') {
-        await Logger.warn(`Failed to update field ${update.field} for resource ${resourceRef}: ${result.reason}`);
-        failCount++;
-      } else {
-        successCount++;
-      }
-    }
-
-    await Logger.info(`Completed metadata update for resource ${resourceRef}: ${successCount} succeeded, ${failCount} failed`);
   }
 
   /**

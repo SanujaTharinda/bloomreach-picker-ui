@@ -1,0 +1,117 @@
+{
+  "standardFields": {
+    "title": 8,
+    "description": 3
+  },
+  "customFields": {
+    "bikeLine": {
+      "fieldId": 73,
+      "displayName": "Bike Line",
+      "values": [
+        "A Line",
+        "C Line",
+        "P Line",
+        "G Line",
+        "T Line",
+        "Renewed",
+        "Subscription"
+      ]
+    },
+    "isElectric": {
+      "fieldId": 88,
+      "displayName": "Is Electric",
+      "values": [
+        "Electric",
+        "e-Motiq"
+      ]
+    },
+    "partsAndAccessories": {
+      "fieldId": 75,
+      "displayName": "Parts & Accessories",
+      "values": [
+        "Lighting",
+        "Toolkit",
+        "Bags",
+        "Phone mounts",
+        "Pumps",
+        "Bells",
+        "Carrier Block",
+        "Rack",
+        "Tyres",
+        "Seatposts",
+        "Mudguards",
+        "Wheels",
+        "Pedals",
+        "Handlebars",
+        "Saddles",
+        "Components",
+        "Helmets",
+        "Merchandise",
+        "Luggage"
+      ]
+    },
+    "marketing": {
+      "fieldId": 74,
+      "displayName": "Marketing",
+      "values": [
+        "Spring",
+        "Summer",
+        "Autumn",
+        "Winter",
+        "BWC",
+        "12-Speed",
+        "8-Speed",
+        "4-Speed",
+        "Lifestyle",
+        "Brompton Junction",
+        "Bike Hire",
+        "Social",
+        "Landscape",
+        "Cityscape",
+        "Influencer"
+      ]
+    },
+    "colour": {
+      "fieldId": 89,
+      "displayName": "Colour",
+      "values": [
+        "Black",
+        "White",
+        "Red",
+        "Blue",
+        "Green",
+        "Yellow",
+        "Gold",
+        "Silver",
+        "Space Black",
+        "Forest Green",
+        "Adventure Orange",
+        "Traildust White",
+        "Plum Red",
+        "Dune Sand",
+        "Matt Black",
+        "Palm Green",
+        "Cloud Metallic",
+        "Amethyst Laquer",
+        "Pacific Laquer",
+        "Blasted Titanium",
+        "Turkish Green",
+        "Lilac Stone",
+        "Flamingo Pink",
+        "Hawaii Blue Laquer",
+        "Flame Laquer",
+        "Red Ti Metallic",
+        "Brown",
+        "Cobalt Black",
+        "Purple",
+        "Window Grey",
+        "Bumblebee Yellow",
+        "Ocean Blue",
+        "Racing Green",
+        "Black Laquer",
+        "Pink"
+      ]
+    }
+  }
+}
+

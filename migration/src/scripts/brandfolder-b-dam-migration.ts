@@ -5,7 +5,7 @@ import { BrandfolderService } from '../services/brandfolder.service.js';
 import { ResourceSpaceService } from '../services/resourcespace.service.js';
 import { BrandfolderReference } from '../types/index.js';
 import { fetchWithRetry } from '../utils/fetch-with-retry.js';
-import { categorizeTags, CategorizedTags, TAG_FIELD_MAPPINGS } from '../config/tag-field-mappings.js';
+import { categorizeTags, CategorizedTags, TAG_FIELD_MAPPINGS, buildResourceMetadata, RESOURCESPACE_FIELDS, STANDARD_FIELD_IDS } from '../config/tag-field-mappings.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import ExcelJS from 'exceljs';
@@ -281,11 +281,11 @@ export async function brandfolderBdamMigration(args: ParsedArgs): Promise<void> 
 /**
  * Process a single Brandfolder reference:
  * 1. Extract cdn_url from rawValue JSON
- * 2. Download the file from cdn_url
- * 3. Fetch asset metadata from Brandfolder (name, description, tags)
- * 4. Upload to Resource Space
- * 5. Update Resource Space metadata (title, description, keywords, Brandfolder IDs)
- * 6. Get Resource Space object
+ * 2. Fetch asset metadata from Brandfolder (name, description, tags)
+ * 3. Download the file from cdn_url
+ * 4. Create resource in Resource Space WITH metadata (single API call)
+ * 5. Upload file to the resource
+ * 6. Add to collection
  * 7. Update reference with B-DAM response
  */
 async function processReference(
@@ -303,6 +303,9 @@ async function processReference(
   const lookupKey = `${reference.attachmentId}:${reference.assetId}`;
   let resourcespaceRef: number;
   let knownMetadata: { title: string; description: string } | undefined;
+  // Track metadata for auditing
+  let brandfolderMetadata: { title: string; description: string; tags: string[] } | undefined;
+  let bdamMetadata: { title: string; description: string; customFields: Record<number, string> } | undefined;
   
   if (resourceLookup.has(lookupKey)) {
     resourcespaceRef = resourceLookup.get(lookupKey)!;
@@ -349,68 +352,76 @@ async function processReference(
       throw new Error('filename not found in rawValue');
     }
 
-    await Logger.info(`Downloading from cdn_url: ${cdnUrl}`);
+    // Step 2: Fetch asset metadata from Brandfolder FIRST (needed for create_resource)
+    let assetData: BrandfolderAssetData | null = null;
+    try {
+      assetData = await fetchAssetDataFromBrandfolder(
+        reference.assetId,
+        brandfolderApiKey,
+        brandfolderBaseUrl
+      );
+      knownMetadata = {
+        title: assetData.name,
+        description: assetData.description,
+      };
+      // Store Brandfolder metadata for auditing
+      brandfolderMetadata = {
+        title: assetData.name,
+        description: assetData.description,
+        tags: assetData.tags,
+      };
+      // Store B-DAM metadata for auditing (what will be written to ResourceSpace)
+      bdamMetadata = {
+        title: assetData.name,
+        description: assetData.description,
+        customFields: assetData.categorizedTags.fieldValues,
+      };
+    } catch (metadataError) {
+      await Logger.warn(`Failed to fetch Brandfolder metadata: ${metadataError}`);
+    }
 
-    // Step 2: Download the file from cdn_url
+    // Step 3: Download the file from cdn_url
+    await Logger.info(`Downloading from cdn_url: ${cdnUrl}`);
     const { buffer: fileBuffer, contentType: downloadedContentType } = await downloadFromCdnUrl(cdnUrl);
     await Logger.info(`Downloaded file: ${filename} (${fileBuffer.length} bytes)`);
 
-    // Step 2.5: Update filename with correct extension from Content-Type to avoid Resource Space validation errors
+    // Step 3.5: Update filename with correct extension from Content-Type to avoid Resource Space validation errors
     const updatedFilename = updateFilenameWithExtension(filename, downloadedContentType);
     if (updatedFilename !== filename) {
       await Logger.info(`Updated filename from "${filename}" to "${updatedFilename}" based on Content-Type: ${downloadedContentType}`);
     }
 
-    // Step 3: Create empty resource in Resource Space
-    // Use Content-Type header from download response to determine resource type
-    await Logger.info(`Creating resource in Resource Space...`);
+    // Step 4: Create resource in Resource Space WITH metadata
+    await Logger.info(`Creating resource in Resource Space with metadata...`);
     const resourceType = getResourceTypeFromMimeType(downloadedContentType || mimetype);
     const contentTypeForUpload = downloadedContentType || mimetype;
     await Logger.info(`Determined resource type: ${resourceType} (from Content-Type: ${downloadedContentType || mimetype || 'unknown'})`);
-    resourcespaceRef = await resourcespaceService.createResource(resourceType);
-    
+
+    // Build metadata JSON for create_resource API (field ID -> value pairs)
+    let metadataJson: string | undefined;
+    if (assetData) {
+      metadataJson = buildResourceMetadata(
+        assetData.name,
+        assetData.description,
+        assetData.categorizedTags.fieldValues
+      );
+      await Logger.info(`Metadata JSON: ${metadataJson}`);
+    }
+
+    resourcespaceRef = await resourcespaceService.createResource(resourceType, metadataJson);
     await Logger.info(`Created Resource Space resource with ID: ${resourcespaceRef}`);
 
-    // Step 4: Upload the file to the resource
+    // Step 5: Upload the file to the resource
     await Logger.info(`Uploading file to Resource Space resource ${resourcespaceRef}...`);
     await resourcespaceService.uploadFileToResource(resourcespaceRef, fileBuffer, updatedFilename, contentTypeForUpload, resourceType);
 
-    // Step 5: Add resource to collection
+    // Step 6: Add resource to collection
     await Logger.info(`Adding resource ${resourcespaceRef} to collection ${collectionId}...`);
     await resourcespaceService.addResourceToCollection(collectionId, resourcespaceRef);
 
-    // Step 6: Add to lookup
+    // Step 7: Add to lookup
     resourceLookup.set(lookupKey, resourcespaceRef);
     await Logger.info(`Added to resource lookup: ${lookupKey} -> ${resourcespaceRef}`);
-
-    // Step 6.5: Fetch asset metadata from Brandfolder and update Resource Space
-    try {
-      const assetData = await fetchAssetDataFromBrandfolder(
-        reference.assetId,
-        brandfolderApiKey,
-        brandfolderBaseUrl
-      );
-
-      // Update Resource Space metadata with Brandfolder data
-      // Use categorized tags: specific fields get mapped values, keywords get unmatched tags
-      await resourcespaceService.updateResourceMetadata(resourcespaceRef, {
-        title: assetData.name,
-        description: assetData.description,
-        keywords: assetData.categorizedTags.unmatchedTags, // Only unmatched tags go to keywords
-        brandfolderAssetId: reference.assetId,
-        brandfolderAttachmentId: reference.attachmentId,
-        customFields: assetData.categorizedTags.fieldValues, // Mapped tags go to specific fields
-      });
-
-      // Store metadata so we don't need to fetch it again from ResourceSpace
-      knownMetadata = {
-        title: assetData.name,
-        description: assetData.description,
-      };
-    } catch (metadataError) {
-      // Log but don't fail the entire operation if metadata update fails
-      await Logger.warn(`Failed to update metadata for resource ${resourcespaceRef}: ${metadataError}`);
-    }
   }
 
   // Step 7: Get Resource Space object with all required properties
@@ -424,6 +435,8 @@ async function processReference(
   return {
     ...reference,
     bdamValue: JSON.stringify([bdamResponse]),
+    brandfolderMetadata,
+    bdamMetadata,
   };
 }
 
@@ -672,16 +685,12 @@ async function fetchAssetDataFromBrandfolder(
   // Log categorization results if there are any configured mappings
   if (TAG_FIELD_MAPPINGS.length > 0) {
     const fieldCount = Object.keys(categorizedTags.fieldValues).length;
-    const keywordCount = categorizedTags.unmatchedTags.length;
-    await Logger.info(`  - Tags categorized: ${fieldCount} field(s), ${keywordCount} keyword(s)`);
+    await Logger.info(`  - Tags mapped to ${fieldCount} field(s)`);
     
     if (fieldCount > 0) {
       for (const [field, value] of Object.entries(categorizedTags.fieldValues)) {
         await Logger.info(`    - ${field}: ${value}`);
       }
-    }
-    if (keywordCount > 0) {
-      await Logger.info(`    - keywords: ${categorizedTags.unmatchedTags.join(', ')}`);
     }
   }
 
@@ -811,6 +820,58 @@ function extractBdamCdnUrl(bdamValue: string | null): string {
 }
 
 /**
+ * Format Brandfolder metadata for Excel display
+ */
+function formatBrandfolderMetadata(metadata?: { title: string; description: string; tags: string[] }): string {
+  if (!metadata) return '';
+  
+  const parts: string[] = [];
+  if (metadata.title) {
+    parts.push(`Title: ${metadata.title}`);
+  }
+  if (metadata.description) {
+    parts.push(`Description: ${metadata.description}`);
+  }
+  if (metadata.tags && metadata.tags.length > 0) {
+    parts.push(`Tags: ${metadata.tags.join(', ')}`);
+  }
+  return parts.join('\n');
+}
+
+/**
+ * Format B-DAM metadata for Excel display
+ * Shows what was written to ResourceSpace with field names
+ */
+function formatBdamMetadata(metadata?: { title: string; description: string; customFields: Record<number, string> }): string {
+  if (!metadata) return '';
+  
+  const parts: string[] = [];
+  
+  // Standard fields
+  if (metadata.title) {
+    parts.push(`Title (field ${STANDARD_FIELD_IDS.title}): ${metadata.title}`);
+  }
+  if (metadata.description) {
+    parts.push(`Caption (field ${STANDARD_FIELD_IDS.description}): ${metadata.description}`);
+  }
+  
+  // Custom fields - get display names from RESOURCESPACE_FIELDS
+  if (metadata.customFields) {
+    for (const [fieldIdStr, value] of Object.entries(metadata.customFields)) {
+      if (value) {
+        const fieldId = parseInt(fieldIdStr, 10);
+        // Find the field definition to get the display name
+        const fieldDef = Object.values(RESOURCESPACE_FIELDS).find(f => f.fieldId === fieldId);
+        const fieldName = fieldDef?.displayName || `Field ${fieldId}`;
+        parts.push(`${fieldName} (field ${fieldId}): ${value}`);
+      }
+    }
+  }
+  
+  return parts.join('\n');
+}
+
+/**
  * Generate Excel report for migration results
  */
 async function generateMigrationExcelReport(
@@ -872,6 +933,8 @@ async function generateMigrationExcelReport(
     'Bloomreach Document Path',
     'Brandfolder CDN URL',
     'B-DAM CDN URL',
+    'Brandfolder Metadata',
+    'B-DAM Metadata',
     'Brandfolder Raw Value',
     'B-DAM Raw Value',
   ];
@@ -892,6 +955,8 @@ async function generateMigrationExcelReport(
       ref.documentPath,
       extractBrandfolderCdnUrl(ref.rawValue),
       extractBdamCdnUrl(ref.bdamValue),
+      formatBrandfolderMetadata(ref.brandfolderMetadata),
+      formatBdamMetadata(ref.bdamMetadata),
       ref.rawValue,
       ref.bdamValue || '',
     ]);
@@ -915,6 +980,7 @@ async function generateMigrationExcelReport(
     'Bloomreach Document Path',
     'Brandfolder CDN URL',
     'Migration Error',
+    'Brandfolder Metadata',
     'Brandfolder Raw Value',
   ];
   const failedHeaderRow = worksheet.addRow(failedHeaders);
@@ -934,6 +1000,7 @@ async function generateMigrationExcelReport(
       ref.documentPath,
       extractBrandfolderCdnUrl(ref.rawValue),
       ref.message || 'Unknown error',
+      formatBrandfolderMetadata(ref.brandfolderMetadata),
       ref.rawValue,
     ]);
   }
@@ -946,6 +1013,8 @@ async function generateMigrationExcelReport(
     { width: 50 },  // Document Path
     { width: 60 },  // Brandfolder CDN URL
     { width: 60 },  // B-DAM CDN URL / Migration Error
+    { width: 60 },  // Brandfolder Metadata
+    { width: 60 },  // B-DAM Metadata
     { width: 80 },  // Brandfolder Raw Value
     { width: 80 },  // B-DAM Raw Value
   ];
@@ -970,6 +1039,18 @@ interface Phase1Inventory {
 export interface BrandfolderReferenceWithBdam extends BrandfolderReference {
   bdamValue: string | null; // Stringified BdamResponse object
   message?: string; // Success message or error message
+  /** Brandfolder metadata for auditing: title, description, tags */
+  brandfolderMetadata?: {
+    title: string;
+    description: string;
+    tags: string[];
+  };
+  /** B-DAM metadata for auditing: what was written to ResourceSpace */
+  bdamMetadata?: {
+    title: string;
+    description: string;
+    customFields: Record<number, string>; // fieldId -> value
+  };
 }
 
 interface Phase2MigrationResult {
