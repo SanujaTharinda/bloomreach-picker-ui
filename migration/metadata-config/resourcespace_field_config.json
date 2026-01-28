@@ -1,11 +1,11 @@
 {
   "standardFields": {
     "title": 8,
-    "description": 3
+    "description": 18
   },
   "customFields": {
     "bikeLine": {
-      "fieldId": 73,
+      "fieldId": 88,
       "displayName": "Bike Line",
       "values": [
         "A Line",
@@ -18,7 +18,7 @@
       ]
     },
     "isElectric": {
-      "fieldId": 88,
+      "fieldId": 89,
       "displayName": "Is Electric",
       "values": [
         "Electric",
@@ -26,7 +26,7 @@
       ]
     },
     "partsAndAccessories": {
-      "fieldId": 75,
+      "fieldId": 90,
       "displayName": "Parts & Accessories",
       "values": [
         "Lighting",
@@ -51,7 +51,7 @@
       ]
     },
     "marketing": {
-      "fieldId": 74,
+      "fieldId": 91,
       "displayName": "Marketing",
       "values": [
         "Spring",
@@ -72,7 +72,7 @@
       ]
     },
     "colour": {
-      "fieldId": 89,
+      "fieldId": 92,
       "displayName": "Colour",
       "values": [
         "Black",

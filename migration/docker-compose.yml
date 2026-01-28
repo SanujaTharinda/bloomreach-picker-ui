@@ -1,0 +1,43 @@
+services:
+  migration:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: b-dam-migration
+    env_file:
+      - .env
+    volumes:
+      # Mount the output directory to persist migration results
+      # This includes phase-1, phase-2, phase-3 subdirectories
+      - ./migration-output:/app/migration-output
+      # Mount metadata configuration files (required for Phase 2)
+      - ./metadata-config:/app/metadata-config
+    environment:
+      # Core settings
+      - NODE_ENV=production
+      - MIGRATION_OUTPUT_DIR=/app/migration-output
+      # Bloomreach settings (required for build-brandfolder-inventory, update-bloomreach-fields)
+      - BLOOMREACH_API_URL=${BLOOMREACH_API_URL}
+      - BLOOMREACH_MANAGEMENT_API_KEY=${BLOOMREACH_MANAGEMENT_API_KEY}
+      - BLOOMREACH_PROJECT_ID=${BLOOMREACH_PROJECT_ID}
+      # Brandfolder settings (required for brandfolder-b-dam-migration)
+      - BRANDFOLDER_API_KEY=${BRANDFOLDER_API_KEY}
+      - BRANDFOLDER_BASE_URL=${BRANDFOLDER_BASE_URL:-https://brandfolder.com/api/v4}
+      # Resource Space settings (required for brandfolder-b-dam-migration)
+      - RESOURCESPACE_URL=${RESOURCESPACE_URL}
+      - RESOURCESPACE_API_KEY=${RESOURCESPACE_API_KEY}
+      - RESOURCESPACE_USER=${RESOURCESPACE_USER:-admin}
+      - RESOURCESPACE_ROOT_COLLECTION_NAME=${RESOURCESPACE_ROOT_COLLECTION_NAME:-Website Archive}
+    # Override command to run specific migration script
+    # Examples:
+    #   docker compose run migration build-brandfolder-inventory --folder=brxsaas
+    #   docker compose run migration brandfolder-b-dam-migration --folder=brxsaas
+    #   docker compose run migration update-bloomreach-fields --folder=brxsaas
+    command: ["--help"]
+    networks:
+      - migration-network
+
+networks:
+  migration-network:
+    driver: bridge
+
